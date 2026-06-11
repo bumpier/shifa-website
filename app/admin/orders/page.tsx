@@ -1,18 +1,26 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/lib/adminAuth";
+import { requireAdmin, getAdminSession } from "@/lib/adminAuth";
 import { formatPrice, type Currency } from "@/config/brand";
+import { setOrderStatusAction } from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 
-const STATUSES = ["all", "pending", "paid", "shipped", "delivered", "cancelled"] as const;
+const STATUSES = ["all", "pending", "paid", "packed", "shipped", "delivered", "cancelled"] as const;
 
 const STATUS_STYLES: Record<string, string> = {
   pending: "bg-amber-50 text-amber-700",
   paid: "bg-brand-tint text-brand-deep",
-  shipped: "bg-blue-50 text-blue-700",
+  packed: "bg-blue-50 text-blue-700",
+  shipped: "bg-indigo-50 text-indigo-700",
   delivered: "bg-brand text-white",
   cancelled: "bg-red-50 text-red-600",
+};
+
+// What status a packer can advance an order to
+const PACKER_NEXT_STATUS: Record<string, string | null> = {
+  paid: "packed",
+  packed: "shipped",
 };
 
 export default async function AdminOrdersPage({
@@ -21,6 +29,8 @@ export default async function AdminOrdersPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   await requireAdmin();
+  const session = await getAdminSession();
+  const isPacker = session?.role === "PACKER";
 
   const { status } = await searchParams;
   const filter = STATUSES.includes(status as never) ? status : "all";
@@ -63,43 +73,67 @@ export default async function AdminOrdersPage({
               <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-ink-soft">
                 <th className="px-5 py-3 font-semibold">Date</th>
                 <th className="px-5 py-3 font-semibold">Customer</th>
-                <th className="px-5 py-3 font-semibold">Total</th>
+                {!isPacker && <th className="px-5 py-3 font-semibold">Total</th>}
                 <th className="px-5 py-3 font-semibold">Method</th>
                 <th className="px-5 py-3 font-semibold">Status</th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {orders.map((o) => (
-                <tr key={o.id} className="hover:bg-brand-tint/40">
-                  <td className="px-5 py-3 text-ink-soft">
-                    {o.createdAt.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className="font-medium">{o.customerName}</span>
-                    <span className="block text-xs text-ink-soft">{o.customerEmail}</span>
-                  </td>
-                  <td className="px-5 py-3 font-medium">
-                    {formatPrice(o.totalAmount.toString(), o.currency as Currency)}
-                  </td>
-                  <td className="px-5 py-3 capitalize text-ink-soft">{o.paymentMethod}</td>
-                  <td className="px-5 py-3">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[o.status] ?? ""}`}
-                    >
-                      {o.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <Link
-                      href={`/admin/orders/${o.id}`}
-                      className="text-sm font-semibold text-brand hover:text-brand-deep"
-                    >
-                      View →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {orders.map((o) => {
+                const nextStatus = PACKER_NEXT_STATUS[o.status] ?? null;
+                return (
+                  <tr key={o.id} className="hover:bg-brand-tint/40">
+                    <td className="px-5 py-3 text-ink-soft">
+                      {o.createdAt.toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                      })}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="font-medium">{o.customerName}</span>
+                      <span className="block text-xs text-ink-soft">{o.customerEmail}</span>
+                    </td>
+                    {!isPacker && (
+                      <td className="px-5 py-3 font-medium">
+                        {formatPrice(o.totalAmount.toString(), o.currency as Currency)}
+                      </td>
+                    )}
+                    <td className="px-5 py-3 capitalize text-ink-soft">{o.paymentMethod}</td>
+                    <td className="px-5 py-3">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          STATUS_STYLES[o.status] ?? ""
+                        }`}
+                      >
+                        {o.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        {isPacker && nextStatus && (
+                          <form action={setOrderStatusAction}>
+                            <input type="hidden" name="orderId" value={o.id} />
+                            <input type="hidden" name="status" value={nextStatus} />
+                            <button
+                              type="submit"
+                              className="rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white hover:bg-brand-deep"
+                            >
+                              Mark {nextStatus} →
+                            </button>
+                          </form>
+                        )}
+                        <Link
+                          href={`/admin/orders/${o.id}`}
+                          className="text-sm font-semibold text-brand hover:text-brand-deep"
+                        >
+                          View →
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

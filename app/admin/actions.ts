@@ -89,7 +89,7 @@ export async function adminLogoutAction(): Promise<void> {
 
 // ── Orders ───────────────────────────────────────────────────────
 
-const orderStatusSchema = z.enum(["pending", "paid", "shipped", "delivered", "cancelled"]);
+const orderStatusSchema = z.enum(["pending", "paid", "packed", "shipped", "delivered", "cancelled"]);
 
 export async function setOrderStatusAction(formData: FormData): Promise<void> {
   await requireAdmin();
