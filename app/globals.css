@@ -19,11 +19,11 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-deep hover:shadow-lift focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg min-h-[44px] bg-brand px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-brand/30 bg-transparent px-6 py-3 text-sm font-semibold text-brand transition-all duration-200 hover:border-brand hover:bg-brand-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg min-h-[44px] border border-brand/30 bg-transparent px-6 py-3 text-sm font-semibold text-brand transition-all duration-200 hover:border-brand hover:bg-brand-tint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50;
   }
 
   .field {
@@ -31,7 +31,7 @@
   }
 
   .card {
-    @apply rounded-2xl border border-line bg-white shadow-card;
+    @apply rounded-xl border border-line bg-white shadow-sm;
   }
 
   .label {
