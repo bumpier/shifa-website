@@ -41,16 +41,8 @@ export default async function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-accent-soft blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-40 -left-24 h-80 w-80 rounded-full bg-brand-soft blur-3xl"
-        />
-        <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+      <section>
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-20">
           <p className="eyebrow">{brand.name} wellness</p>
           <h1 className="mt-4 max-w-2xl font-display text-4xl font-medium leading-[1.1] tracking-tight text-brand-deep sm:text-6xl">
             {brand.tagline}
@@ -135,7 +127,7 @@ export default async function HomePage() {
           </div>
           <Link
             href="/products"
-            className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand-deep transition-transform hover:scale-[1.02]"
+            className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand-deep"
           >
             Browse products
           </Link>
