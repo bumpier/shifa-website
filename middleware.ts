@@ -12,13 +12,16 @@ function secret(): Uint8Array {
   return new TextEncoder().encode(process.env.JWT_SECRET ?? "");
 }
 
-async function validAdminToken(token: string | undefined): Promise<boolean> {
-  if (!token) return false;
+async function getAdminTokenRole(
+  token: string | undefined
+): Promise<"ADMIN" | "PACKER" | null> {
+  if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret());
-    return payload.admin === true;
+    if (payload.admin !== true) return null;
+    return (payload.role as string) === "PACKER" ? "PACKER" : "ADMIN";
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -38,15 +41,28 @@ export async function middleware(req: NextRequest) {
   // ── Admin protection (everything under /admin except the login page)
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
     const token = req.cookies.get("admin_session")?.value;
-    if (!(await validAdminToken(token))) {
+    const role = await getAdminTokenRole(token);
+
+    if (!role) {
       const url = req.nextUrl.clone();
       url.pathname = "/admin/login";
       url.search = "";
       return NextResponse.redirect(url);
     }
-    // Sliding expiry: re-issue so the session lasts 2h from last activity
+
+    // Packers are restricted to /admin/orders and /admin/orders/*
+    if (role === "PACKER" && !pathname.startsWith("/admin/orders")) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/admin/orders";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+
+    // Sliding expiry: re-issue token preserving role
     const res = NextResponse.next();
-    const refreshed = await new SignJWT({ admin: true })
+    const refreshPayload: Record<string, unknown> = { admin: true };
+    if (role === "PACKER") refreshPayload.role = "PACKER";
+    const refreshed = await new SignJWT(refreshPayload)
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime(`${ADMIN_SESSION_HOURS}h`)
