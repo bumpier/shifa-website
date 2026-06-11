@@ -40,8 +40,9 @@ export async function registerAction(
     return { error: "Too many attempts — please wait a minute." };
   }
 
+  const rawToken = formData.get("token");
   const parsed = RegisterSchema.safeParse({
-    token: formData.get("token"),
+    token: typeof rawToken === "string" && rawToken ? rawToken : undefined,
     name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
@@ -51,8 +52,11 @@ export async function registerAction(
   }
   const { token, name, email, password } = parsed.data;
 
-  const invite = await prisma.affiliateInvite.findUnique({ where: { token } });
-  if (!invite || invite.usedAt || invite.expiresAt < new Date()) {
+  const invite = token
+    ? await prisma.affiliateInvite.findUnique({ where: { token } })
+    : null;
+
+  if (token && (!invite || invite.usedAt || invite.expiresAt < new Date())) {
     return { error: "This invite link is invalid or has expired." };
   }
 
@@ -79,10 +83,12 @@ export async function registerAction(
         },
       },
     });
-    await tx.affiliateInvite.update({
-      where: { id: invite.id },
-      data: { usedAt: new Date(), usedByUserId: created.id },
-    });
+    if (invite) {
+      await tx.affiliateInvite.update({
+        where: { id: invite.id },
+        data: { usedAt: new Date(), usedByUserId: created.id },
+      });
+    }
     return created;
   });
 
