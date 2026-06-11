@@ -70,3 +70,59 @@ export async function isAdmin(): Promise<boolean> {
   const token = (await cookies()).get(ADMIN_COOKIE)?.value;
   return !!token && (await isAdminToken(token));
 }
+
+export type AdminRole = "ADMIN" | "PACKER";
+
+/** Create a session for an AdminUser (stores role + id in JWT). */
+export async function createAdminUserSession(adminUser: {
+  id: string;
+  role: string;
+}): Promise<void> {
+  const role: AdminRole = adminUser.role === "PACKER" ? "PACKER" : "ADMIN";
+  const token = await new SignJWT({ admin: true, role, adminUserId: adminUser.id })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${ADMIN_SESSION_HOURS}h`)
+    .sign(secret());
+
+  (await cookies()).set(ADMIN_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: ADMIN_SESSION_HOURS * 3600,
+    path: "/",
+  });
+}
+
+/** Returns session info from cookie. Legacy env-var tokens (no role field) are treated as ADMIN. */
+export async function getAdminSession(): Promise<{
+  role: AdminRole;
+  adminUserId?: string;
+} | null> {
+  const token = (await cookies()).get(ADMIN_COOKIE)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secret());
+    if (payload.admin !== true) return null;
+    const role: AdminRole =
+      (payload.role as string) === "PACKER" ? "PACKER" : "ADMIN";
+    return {
+      role,
+      adminUserId: payload.adminUserId as string | undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Throws if the current session is not authenticated OR if `role` is 'ADMIN'
+ * and the session belongs to a Packer.
+ * Use requireAdmin() for packer-accessible routes (it only checks admin===true).
+ * Use requireAdminRole('ADMIN') for Admin-only routes.
+ */
+export async function requireAdminRole(role: AdminRole = "ADMIN"): Promise<void> {
+  const session = await getAdminSession();
+  if (!session) throw new Error("Unauthorised");
+  if (role === "ADMIN" && session.role !== "ADMIN") throw new Error("Unauthorised");
+}
