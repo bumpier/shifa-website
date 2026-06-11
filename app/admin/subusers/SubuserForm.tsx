@@ -39,6 +39,15 @@ export default function SubuserForm() {
         />
       </div>
       <div>
+        <label className="label" htmlFor="su-role">
+          Role
+        </label>
+        <select id="su-role" name="role" required className="field">
+          <option value="PACKER">Packer — orders &amp; shipping only</option>
+          <option value="ADMIN">Admin — full access</option>
+        </select>
+      </div>
+      <div>
         <label className="label" htmlFor="su-password">
           Temporary password
         </label>
@@ -53,7 +62,7 @@ export default function SubuserForm() {
         />
       </div>
       <FormMessage state={state} />
-      <SubmitButton>Create packer account</SubmitButton>
+      <SubmitButton>Create account</SubmitButton>
     </form>
   );
 }

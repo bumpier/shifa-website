@@ -14,6 +14,7 @@ const CreateSubuserSchema = z.object({
     .email()
     .max(254)
     .transform((v) => v.toLowerCase()),
+  role: z.enum(["ADMIN", "PACKER"]),
   password: z.string().min(8).max(128),
 });
 
@@ -26,6 +27,7 @@ export async function createSubuserAction(
   const parsed = CreateSubuserSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
+    role: formData.get("role"),
     password: formData.get("password"),
   });
   if (!parsed.success) {
@@ -43,12 +45,14 @@ export async function createSubuserAction(
       name: parsed.data.name,
       email: parsed.data.email,
       passwordHash,
-      role: "PACKER",
+      role: parsed.data.role,
     },
   });
 
   revalidatePath("/admin/subusers");
-  return { success: `Account created for ${parsed.data.email}` };
+  return {
+    success: `${parsed.data.role === "ADMIN" ? "Admin" : "Packer"} account created for ${parsed.data.email}`,
+  };
 }
 
 export async function toggleSubuserAction(formData: FormData): Promise<void> {
