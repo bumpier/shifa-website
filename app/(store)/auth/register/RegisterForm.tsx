@@ -7,7 +7,7 @@ import { FormMessage, SubmitButton } from "@/components/forms";
 
 const initial: FormState = {};
 
-export function RegisterForm({ token }: { token: string }) {
+export function RegisterForm({ token }: { token?: string }) {
   const [state, action] = useActionState(registerAction, initial);
 
   if (state.success) {
@@ -23,7 +23,7 @@ export function RegisterForm({ token }: { token: string }) {
 
   return (
     <form action={action} className="mt-8 space-y-5">
-      <input type="hidden" name="token" value={token} />
+      {token && <input type="hidden" name="token" value={token} />}
       <div>
         <label className="label" htmlFor="name">Full name</label>
         <input id="name" name="name" required minLength={2} maxLength={100} className="field" autoComplete="name" />
