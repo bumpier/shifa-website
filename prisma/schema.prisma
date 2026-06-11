@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  // Resolves to <project-root>/data/shifa.db — outside /public, never web-accessible
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String
+  priceAed    Decimal  @map("price_aed")
+  pricePkr    Decimal  @map("price_pkr")
+  priceUsd    Decimal  @map("price_usd")
+  priceGbp    Decimal  @map("price_gbp")
+  priceEur    Decimal  @default(0) @map("price_eur")
+  images      String   @default("[]") // JSON array of image paths
+  stock       Int      @default(0)
+  weightGrams Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Order {
+  id              String   @id @default(uuid())
+  status          String   @default("pending") // pending | paid | shipped | delivered | cancelled
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  shippingAddress String // JSON
+  items           String // JSON [{productId, slug, name, qty, unitPrice, unitPriceAed}]
+  currency        String
+  totalAmount     Decimal
+  subtotalAed     Decimal  @default(0) // commission basis, computed at order time
+  paykassmaRef    String?
+  paymentMethod   String // card | jazzcash | easypaisa
+  refCode         String? // affiliate referral code captured from cookie
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  referral AffiliateReferral?
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String
+  role            String    @default("affiliate")
+  name            String
+  status          String    @default("active") // active | suspended
+  emailVerifiedAt DateTime?
+  verifyToken     String?   @unique
+  resetToken      String?   @unique
+  resetTokenExp   DateTime?
+  createdAt       DateTime  @default(now())
+
+  affiliateProfile AffiliateProfile?
+  usedInvite       AffiliateInvite?
+}
+
+model AffiliateProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referralCode    String   @unique
+  commissionRate  Decimal  @default(10.0) // percent
+  // Bank details are AES-256-GCM encrypted at rest (lib/encrypt.ts)
+  bankName        String?
+  bankAccountName String?
+  bankAccountNumber String?
+  bankIBAN        String?
+  bankCountry     String?
+  totalEarned     Decimal  @default(0) // AED, approved + paid
+  totalPaid       Decimal  @default(0) // AED
+  pendingBalance  Decimal  @default(0) // AED, approved but unpaid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  referrals      AffiliateReferral[]
+  payoutRequests PayoutRequest[]
+}
+
+model AffiliateReferral {
+  id                   String   @id @default(uuid())
+  affiliateId          String
+  affiliate            AffiliateProfile @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  orderId              String   @unique
+  order                Order    @relation(fields: [orderId], references: [id])
+  orderTotal           Decimal
+  currency             String
+  commissionRate       Decimal
+  commissionAmount     Decimal // in order currency basis (AED), kept for audit
+  commissionAmountAed  Decimal // always AED — what gets paid
+  status               String   @default("pending") // pending | approved | paid | rejected
+  createdAt            DateTime @default(now())
+}
+
+model AffiliateInvite {
+  id           String    @id @default(uuid())
+  token        String    @unique @default(uuid())
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime // 48hr TTL
+  usedAt       DateTime?
+  usedByUserId String?   @unique
+  usedByUser   User?     @relation(fields: [usedByUserId], references: [id])
+}
+
+model PayoutRequest {
+  id           String    @id @default(uuid())
+  affiliateId  String
+  affiliate    AffiliateProfile @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  amount       Decimal
+  currency     String    @default("AED")
+  status       String    @default("requested") // requested | processing | paid | rejected
+  bankSnapshot String // JSON copy of (encrypted) bank details at request time
+  adminNote    String?
+  requestedAt  DateTime  @default(now())
+  processedAt  DateTime?
+}

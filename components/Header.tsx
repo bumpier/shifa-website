@@ -14,10 +14,7 @@ export function Header({ signedIn }: { signedIn: boolean }) {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={brand.logo} alt="" className="h-9 w-9" />
-          <span className="font-display text-xl font-semibold tracking-tight text-brand-deep">
-            {brand.name}
-          </span>
+          <img src={brand.logo} alt="" className="h-9 w-auto" />
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm font-medium text-ink-soft sm:flex">

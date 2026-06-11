@@ -39,6 +39,7 @@
   }
 }
 
+
 /* Print styles — packing slips render clean with no chrome */
 @media print {
   body { background: white !important; }

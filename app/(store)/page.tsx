@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { brand } from "@/config/brand";
 import { ProductCard } from "@/components/ProductCard";
-import { currentCurrency } from "@/lib/catalog";
+import { priceMap } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -22,16 +22,15 @@ const TRUST_ITEMS = [
     ),
   },
   {
-    title: "Easy returns",
-    body: brand.trust.returnsLine,
+    title: "Quality guaranteed",
+    body: brand.trust.qualityLine,
     icon: (
-      <path d="M4 9l4-4M4 9l4 4M4 9h11a5 5 0 0 1 0 10h-5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" strokeLinecap="round" strokeLinejoin="round" />
     ),
   },
 ];
 
 export default async function HomePage() {
-  const currency = await currentCurrency();
   const products = await prisma.product.findMany({
     where: { active: true },
     orderBy: { createdAt: "asc" },
@@ -104,7 +103,7 @@ export default async function HomePage() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((p) => (
-              <ProductCard key={p.id} product={p} currency={currency} />
+              <ProductCard key={p.id} product={{ id: p.id, slug: p.slug, name: p.name, description: p.description, images: p.images, stock: p.stock, prices: priceMap(p) }} />
             ))}
           </div>
         )}

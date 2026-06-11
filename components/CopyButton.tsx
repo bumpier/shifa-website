@@ -1,0 +1,25 @@
+"use client";
+
+import { useState } from "react";
+
+export function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <button
+      type="button"
+      className="btn-secondary shrink-0"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1600);
+        } catch {
+          // clipboard unavailable — user can select the text manually
+        }
+      }}
+    >
+      {copied ? "Copied ✓" : "Copy link"}
+    </button>
+  );
+}
