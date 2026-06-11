@@ -19,6 +19,7 @@ model Product {
   priceGbp    Decimal  @map("price_gbp")
   priceEur    Decimal  @default(0) @map("price_eur")
   images      String   @default("[]") // JSON array of image paths
+  variants    String   @default("[]") // JSON array of {label,priceAed,pricePkr,priceUsd,priceGbp,priceEur}
   stock       Int      @default(0)
   weightGrams Int      @default(0)
   active      Boolean  @default(true)
@@ -75,6 +76,7 @@ model AffiliateProfile {
   bankAccountNumber String?
   bankIBAN        String?
   bankCountry     String?
+  payoutCurrency  String   @default("AED") // preferred payout currency
   totalEarned     Decimal  @default(0) // AED, approved + paid
   totalPaid       Decimal  @default(0) // AED
   pendingBalance  Decimal  @default(0) // AED, approved but unpaid
@@ -108,6 +110,16 @@ model AffiliateInvite {
   usedAt       DateTime?
   usedByUserId String?   @unique
   usedByUser   User?     @relation(fields: [usedByUserId], references: [id])
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("PACKER") // ADMIN | PACKER
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
 }
 
 model PayoutRequest {
