@@ -1,6 +1,6 @@
 import { requireAdminRole } from "@/lib/adminAuth";
 import { prisma } from "@/lib/db";
-import { toggleSubuserAction } from "@/app/admin/subusers/actions";
+import { toggleSubuserAction, deleteSubuserAction } from "@/app/admin/subusers/actions";
 import SubuserForm from "./SubuserForm";
 
 export const dynamic = "force-dynamic";
@@ -51,16 +51,33 @@ export default async function SubusersPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <form action={toggleSubuserAction}>
-                      <input type="hidden" name="id" value={u.id} />
-                      <input type="hidden" name="active" value={String(u.active)} />
-                      <button
-                        type="submit"
-                        className="text-sm font-semibold text-ink-soft hover:text-brand"
+                    <div className="flex items-center justify-end gap-4">
+                      <form action={toggleSubuserAction}>
+                        <input type="hidden" name="id" value={u.id} />
+                        <input type="hidden" name="active" value={String(u.active)} />
+                        <button
+                          type="submit"
+                          className="text-sm font-semibold text-ink-soft hover:text-brand"
+                        >
+                          {u.active ? "Suspend" : "Reinstate"}
+                        </button>
+                      </form>
+                      <form
+                        action={deleteSubuserAction}
+                        onSubmit={(e) => {
+                          if (!confirm(`Remove ${u.name}? This cannot be undone.`))
+                            e.preventDefault();
+                        }}
                       >
-                        {u.active ? "Suspend" : "Reinstate"}
-                      </button>
-                    </form>
+                        <input type="hidden" name="id" value={u.id} />
+                        <button
+                          type="submit"
+                          className="text-sm font-semibold text-red-500 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -71,7 +88,7 @@ export default async function SubusersPage() {
 
       <div className="card mt-10 p-6">
         <h2 className="font-display text-xl font-medium text-brand-deep">
-          Add packer account
+          Add team member
         </h2>
         <SubuserForm />
       </div>

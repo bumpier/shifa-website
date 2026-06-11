@@ -62,3 +62,10 @@ export async function toggleSubuserAction(formData: FormData): Promise<void> {
   await prisma.adminUser.update({ where: { id }, data: { active: !active } });
   revalidatePath("/admin/subusers");
 }
+
+export async function deleteSubuserAction(formData: FormData): Promise<void> {
+  await requireAdminRole("ADMIN");
+  const id = z.string().cuid().parse(formData.get("id"));
+  await prisma.adminUser.delete({ where: { id } });
+  revalidatePath("/admin/subusers");
+}
