@@ -20,7 +20,23 @@ export default function AdminLoginPage() {
 
         <form action={action} className="mt-7 space-y-5">
           <div>
-            <label className="label" htmlFor="password">Password</label>
+            <label className="label" htmlFor="email">
+              Email{" "}
+              <span className="font-normal text-ink-soft">(leave blank for master password)</span>
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              maxLength={254}
+              className="field"
+              autoComplete="email"
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="password">
+              Password
+            </label>
             <input
               id="password"
               name="password"

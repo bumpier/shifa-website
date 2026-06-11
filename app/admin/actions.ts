@@ -8,10 +8,13 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import bcrypt from "bcryptjs";
 import {
   createAdminSession,
+  createAdminUserSession,
   destroyAdminSession,
   requireAdmin,
+  requireAdminRole,
   verifyAdminPassword,
 } from "@/lib/adminAuth";
 import {
@@ -42,20 +45,38 @@ export async function adminLoginAction(
     return { error: "Too many failed attempts. Try again in 15 minutes." };
   }
   if (!rateLimit(`${key}:req`, 10, 60_000)) {
-    return { error: "Too many attempts — please wait a minute." };
+    return { error: "Too many attempts. Please wait a minute." };
   }
 
+  const emailRaw = formData.get("email");
   const password = formData.get("password");
   if (typeof password !== "string" || password.length === 0 || password.length > 256) {
     recordFailure(key);
     return { error: "Invalid credentials" };
   }
 
+  // AdminUser login (email provided)
+  if (typeof emailRaw === "string" && emailRaw.trim()) {
+    const email = emailRaw.trim().toLowerCase();
+    const adminUser = await prisma.adminUser.findUnique({ where: { email } });
+    if (
+      !adminUser ||
+      !adminUser.active ||
+      !(await bcrypt.compare(password, adminUser.passwordHash))
+    ) {
+      recordFailure(key);
+      return { error: "Invalid credentials" };
+    }
+    clearFailures(key);
+    await createAdminUserSession(adminUser);
+    redirect(adminUser.role === "PACKER" ? "/admin/orders" : "/admin");
+  }
+
+  // Env-var super-admin fallback (no email)
   if (!(await verifyAdminPassword(password))) {
     recordFailure(key);
     return { error: "Invalid credentials" };
   }
-
   clearFailures(key);
   await createAdminSession();
   redirect("/admin");
@@ -112,7 +133,7 @@ export async function saveProductAction(
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
-  await requireAdmin();
+  await requireAdminRole("ADMIN");
 
   const parsed = ProductSchema.safeParse({
     name: formData.get("name"),
@@ -188,7 +209,7 @@ export async function saveProductAction(
 }
 
 export async function deleteProductAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireAdminRole("ADMIN");
   const id = z.string().uuid().parse(formData.get("productId"));
   // Soft delete — orders reference product data as a JSON snapshot
   await prisma.product.update({ where: { id }, data: { active: false } });
@@ -202,7 +223,7 @@ export async function createInviteAction(
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
-  await requireAdmin();
+  await requireAdminRole("ADMIN");
 
   const invite = await prisma.affiliateInvite.create({
     data: { expiresAt: new Date(Date.now() + 48 * 3600_000) },
@@ -222,7 +243,7 @@ export async function createInviteAction(
 }
 
 export async function setCommissionRateAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireAdminRole("ADMIN");
   const affiliateId = z.string().uuid().parse(formData.get("affiliateId"));
   const parsed = CommissionRateSchema.parse({ rate: formData.get("rate") });
   await prisma.affiliateProfile.update({
@@ -233,7 +254,7 @@ export async function setCommissionRateAction(formData: FormData): Promise<void>
 }
 
 export async function setAffiliateStatusAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireAdminRole("ADMIN");
   const userId = z.string().uuid().parse(formData.get("userId"));
   const status = z.enum(["active", "suspended"]).parse(formData.get("status"));
   await prisma.user.update({ where: { id: userId }, data: { status } });
@@ -241,7 +262,7 @@ export async function setAffiliateStatusAction(formData: FormData): Promise<void
 }
 
 export async function reviewReferralAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireAdminRole("ADMIN");
   const referralId = z.string().uuid().parse(formData.get("referralId"));
   const decision = z.enum(["approve", "reject"]).parse(formData.get("decision"));
   if (decision === "approve") await approveReferral(referralId);
@@ -250,7 +271,7 @@ export async function reviewReferralAction(formData: FormData): Promise<void> {
 }
 
 export async function processPayoutAction(formData: FormData): Promise<void> {
-  await requireAdmin();
+  await requireAdminRole("ADMIN");
   const payoutId = z.string().uuid().parse(formData.get("payoutId"));
   const decision = z.enum(["paid", "rejected", "processing"]).parse(formData.get("decision"));
   const note = formData.get("adminNote");
