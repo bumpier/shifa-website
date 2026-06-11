@@ -33,7 +33,7 @@ export default function PrivacyPage() {
           <h2 className="mb-2 font-semibold text-ink">Cookies</h2>
           <p>
             We use a small number of functional cookies: your currency preference, your
-            cart, and — if you arrived via a partner link — a referral code that expires
+            cart, and if you arrived via a partner link, a referral code that expires
             after 30 days. We do not use advertising or tracking cookies.
           </p>
         </section>

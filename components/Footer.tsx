@@ -10,9 +10,6 @@ export function Footer() {
             <div className="flex items-center gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={brand.logo} alt="" className="h-8 w-auto" />
-              <span className="font-display text-lg font-semibold text-brand-deep">
-                {brand.name}
-              </span>
             </div>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-soft">
               {brand.tagline}
@@ -46,7 +43,7 @@ export function Footer() {
         </div>
 
         <p className="mt-10 border-t border-line pt-6 text-xs text-ink-soft/70">
-          © {new Date().getFullYear()} {brand.name}. All rights reserved.
+          © {new Date().getFullYear()} All rights reserved.
         </p>
       </div>
     </footer>

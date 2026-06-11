@@ -11,7 +11,7 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import { uniqueReferralCode } from "@/lib/affiliate";
-import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
+import { sendPasswordResetEmail } from "@/lib/email";
 import {
   ForgotPasswordSchema,
   LoginSchema,
@@ -37,7 +37,7 @@ export async function registerAction(
   formData: FormData
 ): Promise<FormState> {
   if (!rateLimit(`register:${await ip()}`, 5, 60_000)) {
-    return { error: "Too many attempts — please wait a minute." };
+    return { error: "Too many attempts. Please wait a minute." };
   }
 
   const rawToken = formData.get("token");
@@ -67,17 +67,15 @@ export async function registerAction(
 
   const passwordHash = await hashPassword(password);
   const referralCode = await uniqueReferralCode();
-  const verifyToken = crypto.randomBytes(24).toString("hex");
   const defaultRate = parseFloat(process.env.AFFILIATE_DEFAULT_COMMISSION ?? "10");
 
-  const user = await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx) => {
     const created = await tx.user.create({
       data: {
         email,
         name,
         passwordHash,
         role: "affiliate",
-        verifyToken,
         affiliateProfile: {
           create: { referralCode, commissionRate: defaultRate },
         },
@@ -92,12 +90,7 @@ export async function registerAction(
     return created;
   });
 
-  await sendVerificationEmail(user.email, verifyToken);
-
-  return {
-    success:
-      "Account created. Check your inbox for a verification link, then sign in.",
-  };
+  return { success: "Account created. You can now sign in." };
 }
 
 export async function loginAction(
@@ -109,7 +102,7 @@ export async function loginAction(
     return { error: "Too many failed attempts. Try again in 15 minutes." };
   }
   if (!rateLimit(`${key}:req`, 10, 60_000)) {
-    return { error: "Too many attempts — please wait a minute." };
+    return { error: "Too many attempts. Please wait a minute." };
   }
 
   const parsed = LoginSchema.safeParse({
@@ -145,7 +138,7 @@ export async function forgotPasswordAction(
   formData: FormData
 ): Promise<FormState> {
   if (!rateLimit(`forgot:${await ip()}`, 5, 60_000)) {
-    return { error: "Too many attempts — please wait a minute." };
+    return { error: "Too many attempts. Please wait a minute." };
   }
 
   const parsed = ForgotPasswordSchema.safeParse({ email: formData.get("email") });
@@ -170,7 +163,7 @@ export async function resetPasswordAction(
   formData: FormData
 ): Promise<FormState> {
   if (!rateLimit(`reset:${await ip()}`, 5, 60_000)) {
-    return { error: "Too many attempts — please wait a minute." };
+    return { error: "Too many attempts. Please wait a minute." };
   }
 
   const parsed = ResetPasswordSchema.safeParse({

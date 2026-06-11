@@ -29,7 +29,7 @@ export default async function AdminProductsPage() {
 
       {products.length === 0 ? (
         <p className="card mt-8 p-8 text-center text-sm text-ink-soft">
-          No products yet — add your first one.
+          No products yet. Add your first one.
         </p>
       ) : (
         <div className="card mt-8 overflow-x-auto">

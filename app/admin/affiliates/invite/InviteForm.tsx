@@ -15,7 +15,7 @@ export function InviteForm() {
     <div className="space-y-6">
       <form action={action} className="space-y-5">
         <div>
-          <label className="label" htmlFor="email">Email (optional — sends the invite)</label>
+          <label className="label" htmlFor="email">Email (optional, sends the invite)</label>
           <input id="email" name="email" type="email" maxLength={254} className="field" placeholder="partner@example.com" />
         </div>
         {state.error && (

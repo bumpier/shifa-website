@@ -1,0 +1,111 @@
+<h2>Admin Dashboard Layout</h2>
+<p class="subtitle">How should the analytics and stats be arranged? Pick a layout direction.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f0f1a;padding:16px;font-family:monospace;font-size:11px;color:#aaa">
+      <div style="background:#1a1a2e;border-radius:6px;padding:8px;margin-bottom:8px;display:flex;gap:6px">
+        <div style="flex:1;background:#121271;border-radius:4px;padding:6px;text-align:center">
+          <div style="color:#3ec7ed;font-size:16px;font-weight:bold">142</div>
+          <div style="font-size:9px">Total Orders</div>
+        </div>
+        <div style="flex:1;background:#121271;border-radius:4px;padding:6px;text-align:center">
+          <div style="color:#3ec7ed;font-size:16px;font-weight:bold">AED 28k</div>
+          <div style="font-size:9px">Revenue</div>
+        </div>
+        <div style="flex:1;background:#121271;border-radius:4px;padding:6px;text-align:center">
+          <div style="color:#3ec7ed;font-size:16px;font-weight:bold">18</div>
+          <div style="font-size:9px">Pending</div>
+        </div>
+        <div style="flex:1;background:#121271;border-radius:4px;padding:6px;text-align:center">
+          <div style="color:#3ec7ed;font-size:16px;font-weight:bold">31</div>
+          <div style="font-size:9px">Affiliates</div>
+        </div>
+      </div>
+      <div style="background:#1a1a2e;border-radius:6px;padding:8px;margin-bottom:8px">
+        <div style="font-size:9px;margin-bottom:4px;color:#3ec7ed">Revenue over time ▬▬▬▬▬▬▬▬</div>
+        <div style="height:40px;display:flex;align-items:flex-end;gap:2px">
+          <div style="flex:1;background:#121271;height:30%"></div>
+          <div style="flex:1;background:#121271;height:50%"></div>
+          <div style="flex:1;background:#121271;height:40%"></div>
+          <div style="flex:1;background:#121271;height:70%"></div>
+          <div style="flex:1;background:#121271;height:60%"></div>
+          <div style="flex:1;background:#3ec7ed;height:90%"></div>
+          <div style="flex:1;background:#3ec7ed;height:80%"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <div style="flex:1;background:#1a1a2e;border-radius:6px;padding:8px">
+          <div style="font-size:9px;color:#3ec7ed;margin-bottom:4px">Orders by Status</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div style="display:flex;align-items:center;gap:4px"><div style="width:40px;height:5px;background:#3ec7ed;border-radius:2px"></div><span style="font-size:8px">Delivered 45%</span></div>
+            <div style="display:flex;align-items:center;gap:4px"><div style="width:25px;height:5px;background:#121271;border-radius:2px"></div><span style="font-size:8px">Shipped 28%</span></div>
+            <div style="display:flex;align-items:center;gap:4px"><div style="width:15px;height:5px;background:#2a2a4e;border-radius:2px"></div><span style="font-size:8px">Pending 17%</span></div>
+          </div>
+        </div>
+        <div style="flex:1;background:#1a1a2e;border-radius:6px;padding:8px">
+          <div style="font-size:9px;color:#3ec7ed;margin-bottom:4px">Traffic Sources</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div style="display:flex;align-items:center;gap:4px"><div style="width:35px;height:5px;background:#3ec7ed;border-radius:2px"></div><span style="font-size:8px">Affiliate 42%</span></div>
+            <div style="display:flex;align-items:center;gap:4px"><div style="width:28px;height:5px;background:#121271;border-radius:2px"></div><span style="font-size:8px">Direct 33%</span></div>
+            <div style="display:flex;align-items:center;gap:4px"><div style="width:15px;height:5px;background:#2a2a4e;border-radius:2px"></div><span style="font-size:8px">Other 25%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Stats-first, full-width charts</h3>
+      <p>KPI cards across the top, large revenue chart below, smaller breakdown charts side-by-side. Similar to current dashboard but expanded with real charts.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f0f1a;padding:16px;font-family:monospace;font-size:11px;color:#aaa;display:flex;gap:8px">
+      <div style="flex:2;display:flex;flex-direction:column;gap:6px">
+        <div style="background:#1a1a2e;border-radius:6px;padding:8px">
+          <div style="font-size:9px;color:#3ec7ed;margin-bottom:4px">Revenue — Last 30 days</div>
+          <div style="height:50px;display:flex;align-items:flex-end;gap:1px">
+            <div style="flex:1;background:#121271;height:30%"></div>
+            <div style="flex:1;background:#121271;height:55%"></div>
+            <div style="flex:1;background:#121271;height:40%"></div>
+            <div style="flex:1;background:#3ec7ed;height:80%"></div>
+            <div style="flex:1;background:#3ec7ed;height:95%"></div>
+            <div style="flex:1;background:#3ec7ed;height:70%"></div>
+            <div style="flex:1;background:#3ec7ed;height:85%"></div>
+          </div>
+        </div>
+        <div style="background:#1a1a2e;border-radius:6px;padding:8px">
+          <div style="font-size:9px;color:#3ec7ed;margin-bottom:4px">Orders over time</div>
+          <div style="height:35px;display:flex;align-items:flex-end;gap:1px">
+            <div style="flex:1;background:#121271;height:40%"></div>
+            <div style="flex:1;background:#121271;height:60%"></div>
+            <div style="flex:1;background:#3ec7ed;height:75%"></div>
+            <div style="flex:1;background:#3ec7ed;height:90%"></div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <div style="background:#1a1a2e;border-radius:6px;padding:8px;text-align:center">
+          <div style="color:#3ec7ed;font-size:18px;font-weight:bold">AED 28k</div>
+          <div style="font-size:8px">Revenue</div>
+        </div>
+        <div style="background:#1a1a2e;border-radius:6px;padding:8px;text-align:center">
+          <div style="color:#3ec7ed;font-size:18px;font-weight:bold">142</div>
+          <div style="font-size:8px">Orders</div>
+        </div>
+        <div style="background:#1a1a2e;border-radius:6px;padding:8px">
+          <div style="font-size:8px;color:#3ec7ed;margin-bottom:3px">Top Products</div>
+          <div style="font-size:8px;border-bottom:1px solid #2a2a4e;padding-bottom:2px;margin-bottom:2px">Wolverine — 38</div>
+          <div style="font-size:8px;border-bottom:1px solid #2a2a4e;padding-bottom:2px;margin-bottom:2px">Deep Sleep — 24</div>
+          <div style="font-size:8px">Glow Protocol — 19</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Charts left, KPIs + top lists right <span style="color:#3ec7ed;font-size:0.75rem">★ Recommended</span></h3>
+      <p>Main charts take the left two-thirds. Right column has KPI cards and quick-glance tables (top products, recent orders). Denser, more data visible at once.</p>
+    </div>
+  </div>
+
+</div>

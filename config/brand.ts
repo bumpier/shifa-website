@@ -7,7 +7,7 @@
 
 export const brand = {
   name: "ShifaPK",
-  tagline: "Natural wellness, delivered with care",
+  tagline: "Cellular wellness, done properly.",
   logo: "/logo.png", // swap this file to change logo
   primaryColor: "#3ec7ed", // main brand colour
   accentColor: "#121271",
@@ -26,10 +26,26 @@ export const brand = {
   packingSlipThankYou:
     "Thank you for your order. We hope it brings you good health.",
   trust: {
-    shippingLine: "Tracked shipping across UAE, Pakistan & worldwide",
-    qualityLine: "Premium quality — every product is carefully selected",
-    secureLine: "Secure checkout — cards, JazzCash & Easypaisa",
+    shippingLine: "Every order packed and shipped by us, worldwide.",
+    qualityLine: "NovaCert Certificate of Analysis on every product, purity verified at ≥99.9%.",
+    secureLine: "All payments processed through PCI-DSS certified infrastructure.",
   },
+  // AED-to-X multipliers used to display affiliate balances in their chosen
+  // payout currency. Update these whenever rates drift materially.
+  // Actual payout conversion is handled by your bank at the time of transfer.
+  aedRates: {
+    AED: 1,
+    PKR: 76.5,
+    USD: 0.272,
+    GBP: 0.215,
+    EUR: 0.250,
+  } as Record<string, number>,
+  // Slugs that get a "Best Seller" badge on product cards
+  bestSellers: [
+    "retatrutide-pen",
+    "bptb-repair-pen",
+    "nd1000-nad-cellular-energy-pen",
+  ],
 };
 
 export type Currency = (typeof brand.currency.supported)[number];
@@ -41,6 +57,13 @@ export const CURRENCY_SYMBOLS: Record<Currency, string> = {
   GBP: "£",
   EUR: "€",
 };
+
+/** Convert an AED amount to any supported currency using the configured indicative rates. */
+export function convertFromAed(aedAmount: number | string, to: Currency): number {
+  const n = typeof aedAmount === "string" ? parseFloat(aedAmount) : aedAmount;
+  const rate = brand.aedRates[to] ?? 1;
+  return Math.round(n * rate * 100) / 100;
+}
 
 export function formatPrice(amount: number | string, currency: Currency): string {
   const n = typeof amount === "string" ? parseFloat(amount) : amount;

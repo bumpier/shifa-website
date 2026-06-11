@@ -41,7 +41,7 @@ export default async function AdminAffiliatesPage() {
 
       {affiliates.length === 0 ? (
         <p className="card mt-8 p-8 text-center text-sm text-ink-soft">
-          No affiliates yet — send your first invite.
+          No affiliates yet. Send your first invite.
         </p>
       ) : (
         <div className="card mt-8 overflow-x-auto">

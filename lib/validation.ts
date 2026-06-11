@@ -23,6 +23,7 @@ export const CheckoutSchema = z
         z.object({
           productId: z.string().uuid(),
           qty: z.number().int().min(1).max(50),
+          variantLabel: z.string().min(1).max(20).optional(),
         }).strict()
       )
       .min(1)
@@ -71,6 +72,7 @@ export const BankDetailsSchema = z
     bankAccountNumber: z.string().regex(/^[A-Za-z0-9\s\-]{4,40}$/),
     bankIBAN: z.string().regex(/^[A-Za-z0-9\s]{0,40}$/).optional().or(z.literal("")),
     bankCountry: z.string().min(2).max(60).trim(),
+    payoutCurrency: z.enum(["AED", "PKR", "USD", "GBP", "EUR"]),
   })
   .strict();
 

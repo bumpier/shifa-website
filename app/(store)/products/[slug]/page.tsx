@@ -1,14 +1,46 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { prisma } from "@/lib/db";
 import { brand } from "@/config/brand";
-import { parseImages, priceMap } from "@/lib/catalog";
+import { parseImages, priceMap, parseVariants } from "@/lib/catalog";
 import { CERTIFICATIONS } from "@/config/certifications";
 import { AddToCart } from "@/components/AddToCart";
 import { ProductImage } from "@/components/ProductImage";
 import { ClientPrice } from "@/components/ClientPrice";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await prisma.product.findUnique({ where: { slug } });
+  if (!product || !product.active) return {};
+
+  const images = parseImages(product);
+  const description = product.description
+    ? product.description.replace(/[#*_`>\[\]]/g, "").slice(0, 155).trim() + "…"
+    : `${product.name}. NovaCert-certified at ≥99.9% purity. Tracked delivery to UAE, Pakistan & worldwide. Pay by card, JazzCash or Easypaisa.`;
+
+  return {
+    title: product.name,
+    description,
+    openGraph: {
+      title: `${product.name} | ${brand.name}`,
+      description,
+      images: images[0] ? [{ url: images[0], alt: product.name }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${product.name} | ${brand.name}`,
+      description,
+      images: images[0] ? [images[0]] : [],
+    },
+  };
+}
 
 export default async function ProductPage({
   params,
@@ -21,33 +53,95 @@ export default async function ProductPage({
 
   const images = parseImages(product);
   const prices = priceMap(product);
+  const variants = parseVariants(product);
   const certs = CERTIFICATIONS[product.slug] ?? [];
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: `Is ${product.name} in stock?`,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text:
+            product.stock > 0
+              ? `Yes, ${product.name} is currently in stock and available to order.`
+              : `${product.name} is currently out of stock. Check back soon or contact us at ${brand.contact.email}.`,
+        },
+      },
+      {
+        "@type": "Question",
+        name: `Where can I buy ${product.name}?`,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: `You can buy ${product.name} directly from ShifaPK at shifapk.com/products/${product.slug}. We ship to UAE, Pakistan, and worldwide with tracked delivery. Every order includes a NovaCert Certificate of Analysis verifying compound purity at ≥99.9%.`,
+        },
+      },
+      {
+        "@type": "Question",
+        name: `What payment methods can I use to buy ${product.name}?`,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "ShifaPK accepts card payments, JazzCash, and Easypaisa, all processed securely through PCI-DSS certified infrastructure.",
+        },
+      },
+    ],
+  };
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description ?? undefined,
+    image: images[0] ?? undefined,
+    sku: product.slug,
+    brand: { "@type": "Brand", name: brand.name },
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "PKR",
+      price: prices.PKR,
+      availability:
+        product.stock > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+      url: `https://shifapk.com/products/${product.slug}`,
+    },
+  };
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
       {/* Hero: image + buy */}
       <div className="grid gap-12 lg:grid-cols-2">
         <div className="overflow-hidden rounded-2xl bg-brand-tint">
-          <div className="relative aspect-square">
+          <div className="aspect-square">
             <ProductImage
               src={images[0] ?? null}
               alt={product.name}
               className="h-full w-full object-cover"
             />
-            <span className="absolute top-2 right-2 rounded-full bg-brand px-2 py-1 text-xs font-medium text-white">
-              For research purposes only
-            </span>
           </div>
         </div>
 
         <div className="flex flex-col justify-center">
-          <p className="eyebrow">{brand.name}</p>
+          <p className="eyebrow">NovaCert certified</p>
           <h1 className="mt-2 font-display text-3xl font-medium leading-snug tracking-tight text-brand-deep sm:text-4xl">
             {product.name}
           </h1>
-          <p className="mt-4 text-2xl font-semibold text-brand">
-            <ClientPrice prices={prices} />
-          </p>
+          {variants.length === 0 && (
+            <p className="mt-4 text-2xl font-semibold text-brand">
+              <ClientPrice prices={prices} />
+            </p>
+          )}
 
           <div className="mt-8">
             <AddToCart
@@ -57,6 +151,7 @@ export default async function ProductPage({
               image={images[0] ?? null}
               prices={prices}
               inStock={product.stock > 0}
+              variants={variants}
             />
           </div>
 
@@ -65,6 +160,7 @@ export default async function ProductPage({
             <li>✓ {brand.trust.shippingLine}</li>
             <li>✓ {brand.trust.qualityLine}</li>
           </ul>
+          <p className="mt-4 text-[10px] text-ink-soft/50">For research purposes only</p>
         </div>
       </div>
 
@@ -123,9 +219,12 @@ export default async function ProductPage({
         {/* Certifications sidebar */}
         {certs.length > 0 && (
           <div className="mt-10 lg:mt-0">
-            <h2 className="mb-4 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-brand">
+            <h2 className="mb-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-brand">
               Certificates of Analysis
             </h2>
+            <p className="mb-4 text-xs leading-relaxed text-ink-soft">
+              Third-party verified by NovaCert. Batch number, compound, and purity result available before you buy.
+            </p>
             <div className="flex flex-col gap-2">
               {certs.map((cert) => (
                 <a
@@ -133,7 +232,8 @@ export default async function ProductPage({
                   href={cert.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-3 rounded-xl border border-line bg-white px-4 py-3 text-sm transition-colors hover:border-brand/40 hover:bg-brand-tint"
+                  aria-label={`View ${cert.compound} certificate (opens in new tab)`}
+                  className="group flex items-center gap-3 rounded-xl border border-line bg-white px-4 py-3 text-sm transition-colors hover:border-brand/40 hover:bg-brand-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-tint text-brand group-hover:bg-white">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

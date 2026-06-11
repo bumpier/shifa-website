@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCart } from "@/components/CartProvider";
+import { useCart, itemKey } from "@/components/CartProvider";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { formatPrice } from "@/config/brand";
 import { ProductImage } from "@/components/ProductImage";
@@ -33,7 +33,7 @@ export default function CartPage() {
         <>
           <ul className="mt-10 divide-y divide-line">
             {items.map((item) => (
-              <li key={item.productId} className="flex items-center gap-4 py-5">
+              <li key={itemKey(item.productId, item.variantLabel)} className="flex items-center gap-4 py-5">
                 <Link
                   href={`/products/${item.slug}`}
                   className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-line bg-brand-tint"
@@ -59,7 +59,7 @@ export default function CartPage() {
                   <button
                     type="button"
                     aria-label="Decrease quantity"
-                    onClick={() => setQty(item.productId, item.qty - 1)}
+                    onClick={() => setQty(item.productId, item.qty - 1, item.variantLabel)}
                     className="h-9 w-9 rounded-l-full text-ink-soft hover:text-brand"
                   >
                     −
@@ -68,7 +68,7 @@ export default function CartPage() {
                   <button
                     type="button"
                     aria-label="Increase quantity"
-                    onClick={() => setQty(item.productId, item.qty + 1)}
+                    onClick={() => setQty(item.productId, item.qty + 1, item.variantLabel)}
                     className="h-9 w-9 rounded-r-full text-ink-soft hover:text-brand"
                   >
                     +
@@ -76,7 +76,7 @@ export default function CartPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => remove(item.productId)}
+                  onClick={() => remove(item.productId, item.variantLabel)}
                   className="text-sm text-ink-soft/60 hover:text-red-700"
                   aria-label={`Remove ${item.name}`}
                 >

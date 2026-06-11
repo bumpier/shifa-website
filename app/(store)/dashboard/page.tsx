@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentAffiliate } from "@/lib/auth";
 import { tryDecrypt } from "@/lib/encrypt";
-import { formatPrice } from "@/config/brand";
-import { logoutAction, resendVerificationAction } from "@/app/(store)/auth/actions";
+import { convertFromAed, formatPrice, type Currency } from "@/config/brand";
+import { logoutAction } from "@/app/(store)/auth/actions";
 import { CopyButton } from "@/components/CopyButton";
 import { BankDetailsForm, PayoutButton } from "./DashboardForms";
 
@@ -21,33 +21,6 @@ export default async function DashboardPage() {
   if (!user?.affiliateProfile) redirect("/auth/login");
   const profile = user.affiliateProfile;
 
-  // Email verification is required before the dashboard unlocks
-  if (!user.emailVerifiedAt) {
-    return (
-      <div className="mx-auto max-w-md px-4 py-20 text-center sm:px-6">
-        <div className="card p-8">
-          <p className="eyebrow">One more step</p>
-          <h1 className="mt-2 font-display text-3xl font-medium tracking-tight text-brand-deep">
-            Verify your email
-          </h1>
-          <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-            We sent a verification link to <span className="font-medium text-ink">{user.email}</span>.
-            Your dashboard unlocks as soon as it is confirmed.
-          </p>
-          <form action={resendVerificationAction} className="mt-8">
-            <button type="submit" className="btn-primary w-full">
-              Resend verification email
-            </button>
-          </form>
-          <form action={logoutAction} className="mt-3">
-            <button type="submit" className="text-sm text-ink-soft hover:text-brand">
-              Sign out
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   const [referrals, payouts] = await Promise.all([
     prisma.affiliateReferral.findMany({
@@ -67,11 +40,14 @@ export default async function DashboardPage() {
   const pending = parseFloat(profile.pendingBalance.toString());
   const hasBank = !!profile.bankAccountNumber;
 
+  const pc = profile.payoutCurrency as Currency;
+  const fmt = (aed: number | string) => formatPrice(convertFromAed(aed, pc), pc);
+
   const stats = [
     { label: "Total referrals", value: String(referrals.length) },
-    { label: "Total earned", value: formatPrice(profile.totalEarned.toString(), "AED") },
-    { label: "Pending balance", value: formatPrice(profile.pendingBalance.toString(), "AED") },
-    { label: "Paid out", value: formatPrice(profile.totalPaid.toString(), "AED") },
+    { label: "Total earned", value: fmt(profile.totalEarned.toString()) },
+    { label: "Pending balance", value: fmt(profile.pendingBalance.toString()) },
+    { label: "Paid out", value: fmt(profile.totalPaid.toString()) },
   ];
 
   return (
@@ -97,7 +73,7 @@ export default async function DashboardPage() {
           <p className="truncate font-mono text-sm text-ink">{referralLink}</p>
           <p className="mt-1 text-xs text-ink-soft">
             You earn {profile.commissionRate.toString()}% of every order placed through this
-            link, credited in AED.
+            link, paid out in {pc}.
           </p>
         </div>
         <CopyButton text={referralLink} />
@@ -122,7 +98,7 @@ export default async function DashboardPage() {
             <h2 className="font-display text-xl font-medium text-brand-deep">Recent referrals</h2>
             {referrals.length === 0 ? (
               <p className="card mt-4 p-6 text-sm text-ink-soft">
-                No referrals yet — share your link to get started.
+                No referrals yet. Share your link to get started.
               </p>
             ) : (
               <div className="card mt-4 overflow-x-auto">
@@ -131,7 +107,7 @@ export default async function DashboardPage() {
                     <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-ink-soft">
                       <th className="px-5 py-3 font-semibold">Date</th>
                       <th className="px-5 py-3 font-semibold">Order value</th>
-                      <th className="px-5 py-3 font-semibold">Commission</th>
+                      <th className="px-5 py-3 font-semibold">Commission ({pc})</th>
                       <th className="px-5 py-3 font-semibold">Status</th>
                     </tr>
                   </thead>
@@ -139,13 +115,13 @@ export default async function DashboardPage() {
                     {referrals.map((r) => (
                       <tr key={r.id}>
                         <td className="px-5 py-3 text-ink-soft">
-                          {r.createdAt.toLocaleDateString("en-GB")}
+                          {new Intl.DateTimeFormat("en-GB").format(r.createdAt)}
                         </td>
                         <td className="px-5 py-3">
                           {formatPrice(r.orderTotal.toString(), r.currency as never)}
                         </td>
                         <td className="px-5 py-3 font-medium">
-                          {formatPrice(r.commissionAmountAed.toString(), "AED")}
+                          {fmt(r.commissionAmountAed.toString())}
                         </td>
                         <td className="px-5 py-3">
                           <span
@@ -181,10 +157,10 @@ export default async function DashboardPage() {
                     {payouts.map((p) => (
                       <tr key={p.id}>
                         <td className="px-5 py-3 text-ink-soft">
-                          {p.requestedAt.toLocaleDateString("en-GB")}
+                          {new Intl.DateTimeFormat("en-GB").format(p.requestedAt)}
                         </td>
                         <td className="px-5 py-3 font-medium">
-                          {formatPrice(p.amount.toString(), "AED")}
+                          {formatPrice(p.amount.toString(), p.currency as Currency)}
                         </td>
                         <td className="px-5 py-3 capitalize text-ink-soft">{p.status}</td>
                       </tr>
@@ -203,9 +179,9 @@ export default async function DashboardPage() {
             <p className="text-sm leading-relaxed text-ink-soft">
               Your approved balance is{" "}
               <span className="font-semibold text-brand-deep">
-                {formatPrice(profile.pendingBalance.toString(), "AED")}
+                {fmt(profile.pendingBalance.toString())}
               </span>
-              . Minimum payout is {formatPrice(minPayout, "AED")}.
+              . Minimum payout is {fmt(minPayout)}.
             </p>
             <PayoutButton disabled={pending < minPayout || !hasBank} />
             {!hasBank && (
@@ -228,6 +204,7 @@ export default async function DashboardPage() {
                 bankAccountNumber: tryDecrypt(profile.bankAccountNumber) ?? "",
                 bankIBAN: tryDecrypt(profile.bankIBAN) ?? "",
                 bankCountry: tryDecrypt(profile.bankCountry) ?? "",
+                payoutCurrency: profile.payoutCurrency,
               }}
             />
           </div>

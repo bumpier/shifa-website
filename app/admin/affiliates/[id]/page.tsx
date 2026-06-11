@@ -117,6 +117,10 @@ export default async function AdminAffiliateDetailPage({
           {bank.accountNumber ? (
             <dl className="space-y-1.5 text-sm">
               <div className="flex justify-between gap-4">
+                <dt className="text-ink-soft">Payout currency</dt>
+                <dd className="font-medium">{profile.payoutCurrency}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
                 <dt className="text-ink-soft">Bank</dt>
                 <dd className="font-medium">{bank.bankName}</dd>
               </div>
@@ -223,7 +227,7 @@ export default async function AdminAffiliateDetailPage({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="font-semibold">
-                      {formatPrice(p.amount.toString(), "AED")}{" "}
+                      {formatPrice(p.amount.toString(), p.currency as Currency)}{" "}
                       <span className="ml-2 rounded-full bg-brand-tint px-2.5 py-0.5 text-xs font-semibold capitalize text-brand-deep">
                         {p.status}
                       </span>

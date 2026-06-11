@@ -2,7 +2,8 @@ import type { Currency } from "@/config/brand";
 import { brand } from "@/config/brand";
 import { cookies } from "next/headers";
 
-export { priceFor, priceMap, parseImages } from "@/lib/product-utils";
+export { priceFor, priceMap, parseImages, parseVariants, variantPriceMap, priceForVariant } from "@/lib/product-utils";
+export type { ProductVariant } from "@/lib/product-utils";
 
 export function isCurrency(value: string | undefined | null): value is Currency {
   return !!value && (brand.currency.supported as readonly string[]).includes(value);

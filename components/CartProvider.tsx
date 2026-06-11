@@ -11,6 +11,7 @@ import type { Currency } from "@/config/brand";
 
 export interface CartItem {
   productId: string;
+  variantLabel?: string;
   slug: string;
   name: string;
   image: string | null;
@@ -22,8 +23,8 @@ interface CartApi {
   items: CartItem[];
   count: number;
   add: (item: Omit<CartItem, "qty">, qty?: number) => void;
-  setQty: (productId: string, qty: number) => void;
-  remove: (productId: string) => void;
+  setQty: (productId: string, qty: number, variantLabel?: string) => void;
+  remove: (productId: string, variantLabel?: string) => void;
   clear: () => void;
   hydrated: boolean;
 }
@@ -39,6 +40,10 @@ const CartContext = createContext<CartApi>({
 });
 
 const STORAGE_KEY = "cart_v1";
+
+function itemKey(productId: string, variantLabel?: string) {
+  return variantLabel ? `${productId}:${variantLabel}` : productId;
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -63,11 +68,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     hydrated,
     count: items.reduce((n, i) => n + i.qty, 0),
     add(item, qty = 1) {
+      const key = itemKey(item.productId, item.variantLabel);
       setItems((prev) => {
-        const existing = prev.find((i) => i.productId === item.productId);
+        const existing = prev.find((i) => itemKey(i.productId, i.variantLabel) === key);
         if (existing) {
           return prev.map((i) =>
-            i.productId === item.productId
+            itemKey(i.productId, i.variantLabel) === key
               ? { ...i, qty: Math.min(50, i.qty + qty) }
               : i
           );
@@ -75,17 +81,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return [...prev, { ...item, qty: Math.min(50, qty) }];
       });
     },
-    setQty(productId, qty) {
+    setQty(productId, qty, variantLabel) {
+      const key = itemKey(productId, variantLabel);
       setItems((prev) =>
         qty <= 0
-          ? prev.filter((i) => i.productId !== productId)
+          ? prev.filter((i) => itemKey(i.productId, i.variantLabel) !== key)
           : prev.map((i) =>
-              i.productId === productId ? { ...i, qty: Math.min(50, qty) } : i
+              itemKey(i.productId, i.variantLabel) === key
+                ? { ...i, qty: Math.min(50, qty) }
+                : i
             )
       );
     },
-    remove(productId) {
-      setItems((prev) => prev.filter((i) => i.productId !== productId));
+    remove(productId, variantLabel) {
+      const key = itemKey(productId, variantLabel);
+      setItems((prev) => prev.filter((i) => itemKey(i.productId, i.variantLabel) !== key));
     },
     clear() {
       setItems([]);
@@ -98,3 +108,5 @@ export function CartProvider({ children }: { children: ReactNode }) {
 export function useCart() {
   return useContext(CartContext);
 }
+
+export { itemKey };

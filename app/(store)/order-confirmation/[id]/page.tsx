@@ -47,7 +47,7 @@ export default async function OrderConfirmationPage({
           </h1>
           <p className="mt-2 text-sm text-white/80">
             {paid
-              ? "Payment confirmed — we are preparing your shipment."
+              ? "Payment confirmed. We are preparing your shipment."
               : "We're waiting for your payment to be confirmed. This page will reflect the latest status when refreshed."}
           </p>
         </div>
@@ -57,7 +57,7 @@ export default async function OrderConfirmationPage({
             <span>
               Order <span className="font-mono text-xs">{order.id}</span>
             </span>
-            <span>{order.createdAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
+            <span>{new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(order.createdAt)}</span>
           </div>
 
           <ul className="mt-6 divide-y divide-line text-sm">

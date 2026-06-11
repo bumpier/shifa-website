@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { CheckoutSchema, verifyOrigin } from "@/lib/validation";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { createPayment } from "@/lib/paykassma";
-import { priceFor } from "@/lib/catalog";
+import { priceFor, priceForVariant } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     }
     if (!rateLimit(`checkout:${clientIp(req)}`, 10, 60_000)) {
       return NextResponse.json(
-        { error: "Too many requests — please wait a moment" },
+        { error: "Too many requests. Please wait a moment." },
         { status: 429 }
       );
     }
@@ -48,16 +48,34 @@ export async function POST(req: Request) {
       if (product.stock < line.qty) {
         throw Object.assign(new Error("stock"), { code: "OUT_OF_STOCK", name: product.name });
       }
-      const unitPrice = new Prisma.Decimal(priceFor(product, input.currency));
+
+      let unitPriceStr: string;
+      let unitPriceAedStr: string;
+      if (line.variantLabel) {
+        const vPrice = priceForVariant(product, line.variantLabel, input.currency);
+        const vPriceAed = priceForVariant(product, line.variantLabel, "AED");
+        if (!vPrice || !vPriceAed) {
+          throw Object.assign(new Error("variant"), { code: "INVALID_VARIANT" });
+        }
+        unitPriceStr = vPrice;
+        unitPriceAedStr = vPriceAed;
+      } else {
+        unitPriceStr = priceFor(product, input.currency);
+        unitPriceAedStr = product.priceAed.toFixed(2);
+      }
+
+      const unitPrice = new Prisma.Decimal(unitPriceStr);
+      const unitPriceAed = new Prisma.Decimal(unitPriceAedStr);
       total = total.add(unitPrice.mul(line.qty));
-      subtotalAed = subtotalAed.add(new Prisma.Decimal(product.priceAed).mul(line.qty));
+      subtotalAed = subtotalAed.add(unitPriceAed.mul(line.qty));
+      const itemName = line.variantLabel ? `${product.name} (${line.variantLabel})` : product.name;
       return {
         productId: product.id,
         slug: product.slug,
-        name: product.name,
+        name: itemName,
         qty: line.qty,
         unitPrice: unitPrice.toFixed(2),
-        unitPriceAed: product.priceAed.toFixed(2),
+        unitPriceAed: unitPriceAed.toFixed(2),
       };
     });
 
@@ -102,11 +120,15 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ paymentUrl: payment.paymentUrl, orderId: order.id });
   } catch (err) {
-    if ((err as { code?: string }).code === "OUT_OF_STOCK") {
+    const code = (err as { code?: string }).code;
+    if (code === "OUT_OF_STOCK") {
       return NextResponse.json(
         { error: "One of the items in your cart is out of stock" },
         { status: 409 }
       );
+    }
+    if (code === "INVALID_VARIANT") {
+      return NextResponse.json({ error: "Invalid order details" }, { status: 400 });
     }
     console.error("[internal] checkout failed", err);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });

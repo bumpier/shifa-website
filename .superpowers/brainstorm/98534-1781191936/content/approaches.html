@@ -1,0 +1,46 @@
+<h2>3 Approaches to the Admin Panel</h2>
+<p class="subtitle">Pick the architecture that feels right before we design the details</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>New <code>AdminUser</code> model + role-based auth <span style="color:#3ec7ed;font-size:0.75rem;margin-left:8px">★ Recommended</span></h3>
+      <p>Add a new <code>AdminUser</code> table (email, passwordHash, role: ADMIN | PACKER). The existing env-var super-admin stays as a fallback escape hatch. Packers get their own login at <code>/admin/login</code> (shared URL, role detected after login). Admin dashboard shows full stats + charts; Packer dashboard shows orders only.</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>Pros</h4><ul><li>Audit trail per user</li><li>Easy to add more roles later</li><li>Minimal disruption to existing admin</li><li>Clean permission checks</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>New DB model + migration</li><li>Slightly more auth logic</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Extend existing <code>User</code> model with admin roles</h3>
+      <p>Add a <code>PACKER</code> role to the existing affiliate <code>User</code> model. Reuse the same auth system. Packers log in via the same <code>/auth/login</code> as affiliates, then get redirected to a restricted admin view.</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>Pros</h4><ul><li>No new model needed</li><li>Reuses existing auth code</li></ul></div>
+        <div class="cons"><h4>Cons</h4>
+          <ul>
+            <li>Mixes affiliate + admin concerns in one table</li>
+            <li>Confusing UX (affiliate login = admin?)</li>
+            <li>Harder to lock down later</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Full replacement — all admins become <code>AdminUser</code> records</h3>
+      <p>Remove the env-var password entirely. Super-admin becomes the first <code>AdminUser</code> record seeded in the DB. All auth goes through the same table. Cleanest long-term, but requires a migration of the current admin login flow.</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>Pros</h4><ul><li>Cleanest architecture</li><li>No env-var escape hatch to maintain</li><li>Full audit trail for all admins</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Bigger change, more risk</li><li>Breaks existing admin login during migration</li><li>No fallback if DB is down</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

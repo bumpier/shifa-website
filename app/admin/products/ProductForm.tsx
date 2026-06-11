@@ -123,7 +123,7 @@ export function ProductForm({ values }: { values: ProductFormValues }) {
           accept="image/jpeg,image/png,image/webp"
           className="field"
         />
-        <p className="mt-1.5 text-xs text-ink-soft/70">JPEG, PNG or WebP — max 5MB.</p>
+        <p className="mt-1.5 text-xs text-ink-soft/70">JPEG, PNG or WebP, max 5MB.</p>
       </div>
 
       <FormMessage state={state} />

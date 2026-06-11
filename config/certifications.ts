@@ -7,14 +7,11 @@ export interface Cert {
 }
 
 export const CERTIFICATIONS: Record<string, Cert[]> = {
-  "rt10-retatrutide-10mg": [
+  "retatrutide-pen": [
     { compound: "Retatrutide", batch: "NC-20015", url: `${BASE}/NovaCert_COA_Retatrutide_NC-20015.pdf` },
   ],
-  "rt20-retatrutide-20mg": [
-    { compound: "Retatrutide", batch: "NC-20015", url: `${BASE}/NovaCert_COA_Retatrutide_NC-20015.pdf` },
-  ],
-  "rt30-retatrutide-30mg": [
-    { compound: "Retatrutide", batch: "NC-20015", url: `${BASE}/NovaCert_COA_Retatrutide_NC-20015.pdf` },
+  "cutpr-prime-cut-protocol": [
+    { compound: "Tesamorelin", batch: "NC-20013", url: `${BASE}/NovaCert_COA_Tesamorelin_NC-20013.pdf` },
   ],
   "bptb-repair-pen": [
     { compound: "TB-500", batch: "NC-20012", url: `${BASE}/NovaCert_COA_TB500_NC-20012.pdf` },

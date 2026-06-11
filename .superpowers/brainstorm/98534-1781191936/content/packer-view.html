@@ -1,0 +1,76 @@
+<h2>Packer Dashboard</h2>
+<p class="subtitle">What the Logistics/Packer role sees after login — orders and shipping only, no financial data</p>
+
+<div class="mockup">
+  <div class="mockup-header">Packer View — /admin (after login as Packer)</div>
+  <div class="mockup-body" style="background:#0f0f1a;padding:16px;font-family:system-ui;font-size:12px;color:#ccc">
+
+    <!-- Top bar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #1e1e3a">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="color:#3ec7ed;font-weight:bold;font-size:14px">ShifaPK Admin</span>
+        <span style="background:#121271;color:#3ec7ed;border-radius:4px;padding:2px 8px;font-size:10px">PACKER</span>
+      </div>
+      <span style="color:#666;font-size:11px">Logged in as packer@shifapk.com</span>
+    </div>
+
+    <!-- Status filter tabs -->
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <div style="background:#3ec7ed;color:#0f0f1a;border-radius:4px;padding:4px 10px;font-size:11px;font-weight:bold">All (142)</div>
+      <div style="background:#1a1a2e;border-radius:4px;padding:4px 10px;font-size:11px">Paid (18)</div>
+      <div style="background:#1a1a2e;border-radius:4px;padding:4px 10px;font-size:11px">Packed (24)</div>
+      <div style="background:#1a1a2e;border-radius:4px;padding:4px 10px;font-size:11px">Shipped (31)</div>
+      <div style="background:#1a1a2e;border-radius:4px;padding:4px 10px;font-size:11px">Delivered (65)</div>
+    </div>
+
+    <!-- Orders table -->
+    <div style="background:#1a1a2e;border-radius:6px;overflow:hidden">
+      <div style="display:grid;grid-template-columns:80px 1fr 120px 100px 100px 110px;gap:0;background:#121271;padding:6px 12px;font-size:10px;color:#3ec7ed;text-transform:uppercase;letter-spacing:0.05em">
+        <span>Order #</span><span>Customer</span><span>Items</span><span>Date</span><span>Status</span><span>Action</span>
+      </div>
+      <div style="display:grid;grid-template-columns:80px 1fr 120px 100px 100px 110px;padding:8px 12px;border-bottom:1px solid #0f0f1a;align-items:center">
+        <span style="color:#3ec7ed">#1042</span>
+        <div>
+          <div style="font-size:11px">Ahmed Al-Rashid</div>
+          <div style="font-size:10px;color:#666">Dubai, UAE</div>
+        </div>
+        <span style="font-size:11px">Wolverine × 2</span>
+        <span style="font-size:11px;color:#666">11 Jun</span>
+        <span style="background:#1e3a1e;color:#4caf50;border-radius:3px;padding:2px 6px;font-size:10px">Paid</span>
+        <button style="background:#3ec7ed;color:#0f0f1a;border:none;border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer">Mark Packed →</button>
+      </div>
+      <div style="display:grid;grid-template-columns:80px 1fr 120px 100px 100px 110px;padding:8px 12px;border-bottom:1px solid #0f0f1a;align-items:center">
+        <span style="color:#3ec7ed">#1041</span>
+        <div>
+          <div style="font-size:11px">Fatima Malik</div>
+          <div style="font-size:10px;color:#666">Karachi, PK</div>
+        </div>
+        <span style="font-size:11px">Deep Sleep × 1</span>
+        <span style="font-size:11px;color:#666">10 Jun</span>
+        <span style="background:#1e2a3a;color:#3ec7ed;border-radius:3px;padding:2px 6px;font-size:10px">Packed</span>
+        <button style="background:#121271;color:#3ec7ed;border:none;border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer">Mark Shipped →</button>
+      </div>
+      <div style="display:grid;grid-template-columns:80px 1fr 120px 100px 100px 110px;padding:8px 12px;align-items:center;opacity:0.5">
+        <span style="color:#3ec7ed">#1040</span>
+        <div>
+          <div style="font-size:11px">Sana Rehman</div>
+          <div style="font-size:10px;color:#666">Lahore, PK</div>
+        </div>
+        <span style="font-size:11px">Glow Protocol × 1</span>
+        <span style="font-size:11px;color:#666">9 Jun</span>
+        <span style="background:#1a1a2e;color:#666;border-radius:3px;padding:2px 6px;font-size:10px">Delivered</span>
+        <span style="font-size:10px;color:#444">—</span>
+      </div>
+    </div>
+
+    <!-- Note: no revenue, no affiliates, no products in sidebar -->
+    <div style="margin-top:10px;padding:8px;background:#1a1a2e;border-radius:4px;border-left:3px solid #3ec7ed;font-size:10px;color:#666">
+      ℹ️ Packer view — order management and shipping details only. Revenue and affiliate data not visible.
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:16px;padding:12px;background:#1a1a2e;border-radius:6px">
+  <h3 style="margin:0 0 8px">Order detail (click any order → full shipping info)</h3>
+  <p style="margin:0;color:#888;font-size:13px">Clicking an order shows: full customer address, phone, items + quantities, order notes, and a status progression bar (Paid → Packed → Shipped → Delivered). Packer can move status forward one step at a time. No pricing or revenue visible.</p>
+</div>

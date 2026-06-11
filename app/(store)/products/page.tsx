@@ -3,7 +3,16 @@ import { prisma } from "@/lib/db";
 import { ProductCard } from "@/components/ProductCard";
 import { priceMap } from "@/lib/catalog";
 
-export const metadata: Metadata = { title: "Shop" };
+export const metadata: Metadata = {
+  title: "Research-Grade Peptides | NovaCert Certified",
+  description:
+    "Browse the full ShifaPK range of NovaCert-certified peptides at ≥99.9% purity. Tracked delivery to UAE, Pakistan & worldwide. Pay by card, JazzCash or Easypaisa.",
+  openGraph: {
+    title: "Research-Grade Peptides | ShifaPK",
+    description:
+      "NovaCert-certified peptides at ≥99.9% purity. Tracked delivery to UAE, Pakistan & worldwide.",
+  },
+};
 export const dynamic = "force-dynamic";
 
 export default async function ProductsPage() {
@@ -16,10 +25,10 @@ export default async function ProductsPage() {
     <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
       <p className="eyebrow">The full range</p>
       <h1 className="mt-2 font-display text-4xl font-medium tracking-tight text-brand-deep">
-        Shop
+        Research-grade peptides. Certified purity, tracked delivery.
       </h1>
       <p className="mt-3 max-w-lg text-ink-soft">
-        Every product is stocked, packed and shipped by us directly.
+        Every product carries a NovaCert Certificate of Analysis. Stocked, packed, and shipped by us directly.
       </p>
 
       {products.length === 0 ? (

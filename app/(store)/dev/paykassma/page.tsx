@@ -92,7 +92,7 @@ export default async function PaymentSimulatorPage({
           <form action={failAction}>
             <button
               type="submit"
-              className="w-full rounded-full border border-red-200 px-6 py-3 text-sm font-semibold text-red-700 hover:bg-red-50"
+              className="w-full rounded-full border border-red-200 px-6 py-3 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
             >
               Simulate failed payment
             </button>

@@ -10,9 +10,9 @@ import { brand, formatPrice, type Currency } from "@/config/brand";
 type Method = "card" | "jazzcash" | "easypaisa";
 
 const METHODS: { id: Method; label: string; hint: string; badge: string }[] = [
-  { id: "card", label: "Card", hint: "Visa / Mastercard — AED, USD, GBP or PKR", badge: "💳" },
-  { id: "jazzcash", label: "JazzCash", hint: "Pakistani mobile wallet — paid in PKR", badge: "🟠" },
-  { id: "easypaisa", label: "Easypaisa", hint: "Pakistani mobile wallet — paid in PKR", badge: "🟢" },
+  { id: "card", label: "Card", hint: "Visa / Mastercard, AED, USD, GBP or PKR", badge: "💳" },
+  { id: "jazzcash", label: "JazzCash", hint: "Pakistani mobile wallet, paid in PKR", badge: "🟠" },
+  { id: "easypaisa", label: "Easypaisa", hint: "Pakistani mobile wallet, paid in PKR", badge: "🟢" },
 ];
 
 export default function CheckoutPage() {
@@ -62,7 +62,11 @@ function CheckoutForm() {
           postalCode: form.get("postalCode") ?? "",
           currency: chargeCurrency,
           paymentMethod: method,
-          items: items.map((i) => ({ productId: i.productId, qty: i.qty })),
+          items: items.map((i) => ({
+            productId: i.productId,
+            qty: i.qty,
+            ...(i.variantLabel ? { variantLabel: i.variantLabel } : {}),
+          })),
         }),
       });
       const data = await res.json();
@@ -100,7 +104,7 @@ function CheckoutForm() {
 
       {cancelled && (
         <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Payment was cancelled — your order has not been placed. You can try again below.
+          Payment was cancelled. Your order has not been placed. You can try again below.
         </div>
       )}
 
@@ -116,11 +120,11 @@ function CheckoutForm() {
               </div>
               <div>
                 <label className="label" htmlFor="email">Email</label>
-                <input id="email" name="email" type="email" required maxLength={254} className="field" autoComplete="email" />
+                <input id="email" name="email" type="email" required maxLength={254} className="field" autoComplete="email" spellCheck={false} />
               </div>
               <div>
                 <label className="label" htmlFor="phone">Phone</label>
-                <input id="phone" name="phone" type="tel" required pattern="^\+?[0-9\s\-]{7,20}$" placeholder="+971 50 123 4567" className="field" autoComplete="tel" />
+                <input id="phone" name="phone" type="tel" required pattern="^\+?[0-9\s\-]{7,20}$" placeholder="+971 50 123 4567" className="field" autoComplete="tel" spellCheck={false} />
               </div>
             </div>
           </fieldset>

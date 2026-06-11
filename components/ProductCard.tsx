@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Currency } from "@/config/brand";
-import { formatPrice } from "@/config/brand";
+import { formatPrice, brand } from "@/config/brand";
 import { parseImages } from "@/lib/product-utils";
 import { ProductImage } from "@/components/ProductImage";
 import { useCurrency } from "@/components/CurrencyProvider";
@@ -19,7 +19,8 @@ export interface SerializedProduct {
 
 export function ProductCard({ product }: { product: SerializedProduct }) {
   const { currency } = useCurrency();
-const images = parseImages(product);
+  const images = parseImages(product);
+  const isBestSeller = brand.bestSellers.includes(product.slug);
 
   return (
     <Link
@@ -32,9 +33,11 @@ const images = parseImages(product);
           alt={product.name}
           className="h-full w-full object-cover"
         />
-        <span className="absolute top-2 right-2 rounded-full bg-brand px-2 py-1 text-xs font-medium text-white">
-          For research purposes only
-        </span>
+        {isBestSeller && (
+          <span className="absolute top-2 left-2 rounded-full bg-brand-deep px-2.5 py-1 text-xs font-semibold text-white">
+            Best Seller
+          </span>
+        )}
       </div>
       <div className="p-5">
         <h3 className="font-display text-lg font-medium text-ink group-hover:text-brand-deep">
@@ -48,11 +51,14 @@ const images = parseImages(product);
             {formatPrice(product.prices[currency], currency)}
           </p>
           {product.stock <= 0 ? (
-            <span className="text-xs font-medium text-ink-soft/60">Out of stock</span>
+            <span className="text-xs font-semibold text-ink-soft/60">Out of stock</span>
           ) : product.stock <= 5 ? (
-            <span className="text-xs font-medium text-amber-700">Only {product.stock} left</span>
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
+              Only {product.stock} left
+            </span>
           ) : null}
         </div>
+        <p className="mt-2 text-[10px] text-ink-soft/50">For research purposes only</p>
       </div>
     </Link>
   );

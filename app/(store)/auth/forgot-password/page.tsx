@@ -24,7 +24,7 @@ export default function ForgotPasswordPage() {
         <form action={action} className="mt-8 space-y-5">
           <div>
             <label className="label" htmlFor="email">Email</label>
-            <input id="email" name="email" type="email" required maxLength={254} className="field" autoComplete="email" />
+            <input id="email" name="email" type="email" required maxLength={254} className="field" autoComplete="email" spellCheck={false} />
           </div>
 
           <FormMessage state={state} />

@@ -30,7 +30,7 @@ export function RegisterForm({ token }: { token?: string }) {
       </div>
       <div>
         <label className="label" htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" required maxLength={254} className="field" autoComplete="email" />
+        <input id="email" name="email" type="email" required maxLength={254} className="field" autoComplete="email" spellCheck={false} />
       </div>
       <div>
         <label className="label" htmlFor="password">Password</label>

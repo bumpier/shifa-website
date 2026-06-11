@@ -16,7 +16,7 @@ export async function saveBankDetailsAction(
   formData: FormData
 ): Promise<FormState> {
   const user = await getCurrentAffiliate();
-  if (!user?.affiliateProfile) return { error: "Session expired — please sign in again." };
+  if (!user?.affiliateProfile) return { error: "Session expired. Please sign in again." };
 
   const parsed = BankDetailsSchema.safeParse({
     bankName: formData.get("bankName"),
@@ -24,6 +24,7 @@ export async function saveBankDetailsAction(
     bankAccountNumber: formData.get("bankAccountNumber"),
     bankIBAN: formData.get("bankIBAN") ?? "",
     bankCountry: formData.get("bankCountry"),
+    payoutCurrency: formData.get("payoutCurrency"),
   });
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? "Invalid bank details" };
@@ -39,6 +40,7 @@ export async function saveBankDetailsAction(
       bankAccountNumber: encrypt(d.bankAccountNumber),
       bankIBAN: d.bankIBAN ? encrypt(d.bankIBAN) : null,
       bankCountry: encrypt(d.bankCountry),
+      payoutCurrency: d.payoutCurrency,
     },
   });
 
@@ -52,7 +54,7 @@ export async function requestPayoutAction(
 ): Promise<FormState> {
   const user = await getCurrentAffiliate();
   const profile = user?.affiliateProfile;
-  if (!profile) return { error: "Session expired — please sign in again." };
+  if (!profile) return { error: "Session expired. Please sign in again." };
 
   const minPayout = new Prisma.Decimal(process.env.AFFILIATE_MIN_PAYOUT_AED ?? "100");
   const balance = new Prisma.Decimal(profile.pendingBalance);
@@ -75,7 +77,7 @@ export async function requestPayoutAction(
     data: {
       affiliateId: profile.id,
       amount: balance,
-      currency: "AED",
+      currency: profile.payoutCurrency,
       status: "requested",
       // Snapshot of (encrypted) bank details at time of request
       bankSnapshot: JSON.stringify({
@@ -89,5 +91,5 @@ export async function requestPayoutAction(
   });
 
   revalidatePath("/dashboard");
-  return { success: "Payout requested — we will process it shortly." };
+  return { success: "Payout requested. We will process it shortly." };
 }
