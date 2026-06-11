@@ -1,7 +1,8 @@
 import { requireAdminRole } from "@/lib/adminAuth";
 import { prisma } from "@/lib/db";
-import { toggleSubuserAction, deleteSubuserAction } from "@/app/admin/subusers/actions";
+import { toggleSubuserAction } from "@/app/admin/subusers/actions";
 import SubuserForm from "./SubuserForm";
+import DeleteSubuserButton from "./DeleteSubuserButton";
 
 export const dynamic = "force-dynamic";
 
@@ -62,21 +63,7 @@ export default async function SubusersPage() {
                           {u.active ? "Suspend" : "Reinstate"}
                         </button>
                       </form>
-                      <form
-                        action={deleteSubuserAction}
-                        onSubmit={(e) => {
-                          if (!confirm(`Remove ${u.name}? This cannot be undone.`))
-                            e.preventDefault();
-                        }}
-                      >
-                        <input type="hidden" name="id" value={u.id} />
-                        <button
-                          type="submit"
-                          className="text-sm font-semibold text-red-500 hover:text-red-700"
-                        >
-                          Remove
-                        </button>
-                      </form>
+                      <DeleteSubuserButton id={u.id} name={u.name} />
                     </div>
                   </td>
                 </tr>
