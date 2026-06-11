@@ -39,7 +39,7 @@ export const passwordSchema = z
 
 export const RegisterSchema = z
   .object({
-    token: z.string().uuid(),
+    token: z.string().uuid().optional(),
     name: z.string().min(2).max(100).trim(),
     email: z.string().email().max(254).toLowerCase(),
     password: passwordSchema,
