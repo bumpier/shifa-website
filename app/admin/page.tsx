@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/lib/adminAuth";
+import { requireAdmin, getAdminSession } from "@/lib/adminAuth";
 import { formatPrice } from "@/config/brand";
 import { Prisma } from "@prisma/client";
 
@@ -8,6 +9,8 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminOverviewPage() {
   await requireAdmin();
+  const session = await getAdminSession();
+  if (session?.role === "PACKER") redirect("/admin/orders");
 
   const [pendingOrders, paidOrders, shippedOrders, productCount, affiliateCount, pendingCommissions, openPayouts, paidAgg] =
     await Promise.all([
