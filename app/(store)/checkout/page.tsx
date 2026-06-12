@@ -7,12 +7,16 @@ import { useCart } from "@/components/CartProvider";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { brand, formatPrice, type Currency } from "@/config/brand";
 
-type Method = "card" | "jazzcash" | "easypaisa";
+type Method = "card" | "jazzcash" | "easypaisa" | "btc" | "eth" | "usdt" | "xmr";
 
-const METHODS: { id: Method; label: string; hint: string; badge: string }[] = [
+const METHODS: { id: Method; label: string; hint: string; badge: string; discount?: boolean }[] = [
   { id: "card", label: "Card", hint: "Visa / Mastercard, AED, USD, GBP or PKR", badge: "💳" },
   { id: "jazzcash", label: "JazzCash", hint: "Pakistani mobile wallet, paid in PKR", badge: "🟠" },
   { id: "easypaisa", label: "Easypaisa", hint: "Pakistani mobile wallet, paid in PKR", badge: "🟢" },
+  { id: "btc", label: "Bitcoin", hint: "BTC with 10% discount", badge: "₿", discount: true },
+  { id: "eth", label: "Ethereum", hint: "ETH with 10% discount", badge: "Ξ", discount: true },
+  { id: "usdt", label: "USDT", hint: "Tether stablecoin with 10% discount", badge: "💵", discount: true },
+  { id: "xmr", label: "Monero", hint: "XMR with 10% discount - private transactions", badge: "🔐", discount: true },
 ];
 
 export default function CheckoutPage() {
@@ -34,12 +38,17 @@ function CheckoutForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Wallets settle in PKR; cards use the shopper's selected currency
-  const chargeCurrency: Currency = method === "card" ? currency : "PKR";
+  const isCrypto = ["btc", "eth", "usdt", "xmr"].includes(method);
+
+  // For crypto, always show USD; for wallets, use PKR; for cards, use selected currency
+  const chargeCurrency: Currency = isCrypto ? "USD" : method === "card" ? currency : "PKR";
   const total = items.reduce(
     (sum, i) => sum + parseFloat(i.prices[chargeCurrency] ?? "0") * i.qty,
     0
   );
+
+  // Apply 10% discount for crypto
+  const discountedTotal = isCrypto ? total * 0.9 : total;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -178,10 +187,15 @@ function CheckoutForm() {
                     className="h-4 w-4 accent-[rgb(var(--brand))]"
                   />
                   <span className="text-xl" aria-hidden>{m.badge}</span>
-                  <span>
+                  <span className="flex-1">
                     <span className="block text-sm font-semibold text-ink">{m.label}</span>
                     <span className="block text-xs text-ink-soft">{m.hint}</span>
                   </span>
+                  {m.discount && (
+                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                      -10%
+                    </span>
+                  )}
                 </label>
               ))}
             </div>
@@ -203,13 +217,29 @@ function CheckoutForm() {
               </li>
             ))}
           </ul>
-          <div className="mt-5 flex justify-between border-t border-line pt-4">
-            <span className="font-semibold text-ink">Total</span>
-            <span className="font-semibold text-brand-deep">
-              {formatPrice(total, chargeCurrency)}
-            </span>
+
+          {isCrypto && (
+            <div className="mt-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+              <span className="font-semibold">10% crypto discount applied!</span>
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-col gap-2 border-t border-line pt-4">
+            {isCrypto && total !== discountedTotal && (
+              <div className="flex justify-between text-sm">
+                <span className="text-ink-soft">Subtotal</span>
+                <span className="text-ink-soft">{formatPrice(total, chargeCurrency)}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="font-semibold text-ink">{isCrypto ? "Total after discount" : "Total"}</span>
+              <span className="font-semibold text-brand-deep">
+                {formatPrice(discountedTotal, chargeCurrency)}
+              </span>
+            </div>
           </div>
-          {method !== "card" && currency !== "PKR" && (
+
+          {!isCrypto && method !== "card" && currency !== "PKR" && (
             <p className="mt-3 text-xs text-ink-soft">
               {METHODS.find((m) => m.id === method)?.label} payments settle in PKR.
             </p>

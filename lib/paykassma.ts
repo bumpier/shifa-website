@@ -13,7 +13,7 @@ import crypto from "crypto";
 // checkout → webhook → confirmation flow can be exercised in dev.
 // ─────────────────────────────────────────────────────────────────
 
-export type PaymentMethod = "card" | "jazzcash" | "easypaisa";
+export type PaymentMethod = "card" | "jazzcash" | "easypaisa" | "btc" | "eth" | "usdt" | "xmr";
 
 export interface CreatePaymentInput {
   orderId: string;

@@ -1,39 +1,38 @@
-import Mailgun from "mailgun.js";
-import FormData from "form-data";
 import { brand } from "@/config/brand";
 
-// Transactional email via Mailgun. Without MAILGUN_API_KEY (local dev),
-// emails are logged to the server console instead — never in production.
+// Transactional email via a self-hosted Postal server (HTTP API).
+// Without POSTAL_URL + POSTAL_API_KEY (local dev), emails are logged
+// to the server console instead — never in production.
 
-const mailgun = new Mailgun(FormData);
-let client: ReturnType<typeof mailgun.client> | null = null;
-
-function getClient() {
-  if (!client && process.env.MAILGUN_API_KEY) {
-    client = mailgun.client({ username: "api", key: process.env.MAILGUN_API_KEY });
-  }
-  return client;
-}
-
-const from = process.env.EMAIL_FROM ?? `${brand.name} <noreply@mg.example.com>`;
+const from = process.env.EMAIL_FROM ?? `${brand.name} <noreply@example.com>`;
 
 export async function send(to: string, subject: string, html: string) {
-  const apiKey = process.env.MAILGUN_API_KEY;
-  const domain = process.env.MAILGUN_DOMAIN;
-  if (!apiKey || !domain) {
+  const baseUrl = process.env.POSTAL_URL;
+  const apiKey = process.env.POSTAL_API_KEY;
+  if (!baseUrl || !apiKey) {
     if (process.env.NODE_ENV !== "production") {
       console.log(`[dev email] to=${to} subject="${subject}"\n${html}`);
     } else {
-      console.error("[email] MAILGUN_API_KEY or MAILGUN_DOMAIN missing — email not sent");
+      console.error("[email] POSTAL_URL or POSTAL_API_KEY missing — email not sent");
     }
     return;
   }
-  const mg = getClient();
-  if (!mg) return;
   try {
-    await mg.messages.create(domain, { from, to, subject, html });
+    const res = await fetch(`${baseUrl.replace(/\/$/, "")}/api/v1/send/message`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Server-API-Key": apiKey,
+      },
+      body: JSON.stringify({ to: [to], from, subject, html_body: html }),
+    });
+    const body = await res.json().catch(() => null);
+    // Postal returns HTTP 200 even on failure; the real result is in body.status
+    if (!res.ok || body?.status !== "success") {
+      console.error("[email] Postal send failed", res.status, JSON.stringify(body?.data ?? body));
+    }
   } catch (err) {
-    console.error("[email] Mailgun send failed", err);
+    console.error("[email] Postal send failed", err);
   }
 }
 
