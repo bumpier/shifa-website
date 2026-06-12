@@ -5,47 +5,34 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentAffiliate } from "@/lib/auth";
 import { encrypt } from "@/lib/encrypt";
-import { BankDetailsSchema } from "@/lib/validation";
+import { WalletSchema } from "@/lib/validation";
 import type { FormState } from "@/app/(store)/auth/actions";
 
 // Every action re-derives the affiliate from the session — an affiliate
 // can never touch another affiliate's data.
 
-export async function saveBankDetailsAction(
+export async function saveWalletAction(
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
   const user = await getCurrentAffiliate();
   if (!user?.affiliateProfile) return { error: "Session expired. Please sign in again." };
 
-  const parsed = BankDetailsSchema.safeParse({
-    bankName: formData.get("bankName"),
-    bankAccountName: formData.get("bankAccountName"),
-    bankAccountNumber: formData.get("bankAccountNumber"),
-    bankIBAN: formData.get("bankIBAN") ?? "",
-    bankCountry: formData.get("bankCountry"),
-    payoutCurrency: formData.get("payoutCurrency"),
-  });
+  const parsed = WalletSchema.safeParse({ usdtAddress: formData.get("usdtAddress") });
   if (!parsed.success) {
-    return { error: parsed.error.errors[0]?.message ?? "Invalid bank details" };
+    return { error: parsed.error.errors[0]?.message ?? "Invalid wallet address" };
   }
-  const d = parsed.data;
 
   await prisma.affiliateProfile.update({
     where: { id: user.affiliateProfile.id },
     data: {
       // Encrypted at rest — AES-256-GCM
-      bankName: encrypt(d.bankName),
-      bankAccountName: encrypt(d.bankAccountName),
-      bankAccountNumber: encrypt(d.bankAccountNumber),
-      bankIBAN: d.bankIBAN ? encrypt(d.bankIBAN) : null,
-      bankCountry: encrypt(d.bankCountry),
-      payoutCurrency: d.payoutCurrency,
+      usdtAddress: encrypt(parsed.data.usdtAddress),
     },
   });
 
   revalidatePath("/dashboard");
-  return { success: "Bank details saved." };
+  return { success: "Wallet address saved." };
 }
 
 export async function requestPayoutAction(
@@ -56,14 +43,14 @@ export async function requestPayoutAction(
   const profile = user?.affiliateProfile;
   if (!profile) return { error: "Session expired. Please sign in again." };
 
-  const minPayout = new Prisma.Decimal(process.env.AFFILIATE_MIN_PAYOUT_AED ?? "100");
+  const minPayout = new Prisma.Decimal(process.env.AFFILIATE_MIN_PAYOUT_USDT ?? "25");
   const balance = new Prisma.Decimal(profile.pendingBalance);
 
   if (balance.lessThan(minPayout)) {
-    return { error: `Minimum payout is AED ${minPayout.toFixed(2)}.` };
+    return { error: `Minimum payout is ${minPayout.toFixed(2)} USDT.` };
   }
-  if (!profile.bankAccountNumber) {
-    return { error: "Add your bank details before requesting a payout." };
+  if (!profile.usdtAddress) {
+    return { error: "Add your USDT (TRC20) wallet address before requesting a payout." };
   }
 
   const open = await prisma.payoutRequest.findFirst({
@@ -77,19 +64,18 @@ export async function requestPayoutAction(
     data: {
       affiliateId: profile.id,
       amount: balance,
-      currency: profile.payoutCurrency,
+      currency: "USDT",
       status: "requested",
-      // Snapshot of (encrypted) bank details at time of request
-      bankSnapshot: JSON.stringify({
-        bankName: profile.bankName,
-        bankAccountName: profile.bankAccountName,
-        bankAccountNumber: profile.bankAccountNumber,
-        bankIBAN: profile.bankIBAN,
-        bankCountry: profile.bankCountry,
+      // Snapshot of the (encrypted) wallet at time of request
+      walletSnapshot: JSON.stringify({
+        usdtAddress: profile.usdtAddress,
+        network: "TRC20",
       }),
     },
   });
 
   revalidatePath("/dashboard");
-  return { success: "Payout requested. We will process it shortly." };
+  return {
+    success: "Payout requested. Payouts are processed manually and sent within 24–48 hours.",
+  };
 }
