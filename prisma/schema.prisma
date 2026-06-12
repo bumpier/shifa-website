@@ -44,7 +44,7 @@ model Order {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  referral AffiliateReferral?
+  referrals AffiliateReferral[]
 }
 
 model User {
@@ -80,6 +80,12 @@ model AffiliateProfile {
   totalEarned     Decimal  @default(0) // AED, approved + paid
   totalPaid       Decimal  @default(0) // AED
   pendingBalance  Decimal  @default(0) // AED, approved but unpaid
+  // Pyramid: set once at registration from the recruit_code cookie, never changed
+  recruiterId     String?
+  recruiter       AffiliateProfile?  @relation("Recruits", fields: [recruiterId], references: [id])
+  recruits        AffiliateProfile[] @relation("Recruits")
+  isMaster        Boolean  @default(false)
+  masterAt        DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -91,7 +97,7 @@ model AffiliateReferral {
   id                   String   @id @default(uuid())
   affiliateId          String
   affiliate            AffiliateProfile @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
-  orderId              String   @unique
+  orderId              String
   order                Order    @relation(fields: [orderId], references: [id])
   orderTotal           Decimal
   currency             String
@@ -99,7 +105,16 @@ model AffiliateReferral {
   commissionAmount     Decimal // in order currency basis (AED), kept for audit
   commissionAmountAed  Decimal // always AED — what gets paid
   status               String   @default("pending") // pending | approved | paid | rejected
+  // direct = the referring affiliate's own commission;
+  // override = a master's 2.5% cut of a direct recruit's sale, tied to the
+  // direct row via parentReferralId and state-changed together with it
+  kind                 String   @default("direct") // direct | override
+  parentReferralId     String?  @unique
+  parentReferral       AffiliateReferral?  @relation("OverrideOf", fields: [parentReferralId], references: [id])
+  overrideReferral     AffiliateReferral?  @relation("OverrideOf")
   createdAt            DateTime @default(now())
+
+  @@unique([orderId, kind])
 }
 
 model AffiliateInvite {

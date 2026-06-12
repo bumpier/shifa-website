@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { SignJWT, jwtVerify } from "jose";
 
 // Server-side gatekeeper for /admin/* and /dashboard, plus affiliate
-// referral capture (?ref=CODE → 30-day cookie, last-click wins).
+// referral capture (?ref=CODE → 30-day cookie, last-click wins) and
+// master recruit capture (?recruiter=CODE → 30-day cookie, read at signup).
 
 const REF_COOKIE = "ref_code";
+const RECRUIT_COOKIE = "recruit_code";
 const REF_MAX_AGE = 2_592_000; // 30 days
+const CODE_RE = /^[a-z0-9]{4,16}$/i;
 const ADMIN_SESSION_HOURS = 2;
 
 function secret(): Uint8Array {
@@ -88,21 +91,24 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // ── Referral capture: ?ref=CODE on any public page
+  // ── Referral capture: ?ref=CODE (sales) and ?recruiter=CODE (signups)
   const ref = searchParams.get("ref");
-  if (ref && /^[a-z0-9]{4,16}$/i.test(ref)) {
-    const res = NextResponse.next();
-    res.cookies.set(REF_COOKIE, ref.toLowerCase(), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax", // must survive the redirect back from external links
-      maxAge: REF_MAX_AGE,
-      path: "/",
-    });
-    return res;
+  const recruiter = searchParams.get("recruiter");
+  const res = NextResponse.next();
+  const cookieOpts = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const, // must survive the redirect back from external links
+    maxAge: REF_MAX_AGE,
+    path: "/",
+  };
+  if (ref && CODE_RE.test(ref)) {
+    res.cookies.set(REF_COOKIE, ref.toLowerCase(), cookieOpts);
   }
-
-  return NextResponse.next();
+  if (recruiter && CODE_RE.test(recruiter)) {
+    res.cookies.set(RECRUIT_COOKIE, recruiter.toLowerCase(), cookieOpts);
+  }
+  return res;
 }
 
 export const config = {

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentAffiliate } from "@/lib/auth";
+import { countConfirmedSales, masterSalesThreshold, masterOverridePercent } from "@/lib/affiliate";
 import { tryDecrypt } from "@/lib/encrypt";
 import { convertFromAed, formatPrice, type Currency } from "@/config/brand";
 import { logoutAction } from "@/app/(store)/auth/actions";
@@ -22,7 +23,7 @@ export default async function DashboardPage() {
   const profile = user.affiliateProfile;
 
 
-  const [referrals, payouts] = await Promise.all([
+  const [referrals, payouts, confirmedSales, recruits, overrides] = await Promise.all([
     prisma.affiliateReferral.findMany({
       where: { affiliateId: profile.id },
       orderBy: { createdAt: "desc" },
@@ -33,7 +34,46 @@ export default async function DashboardPage() {
       orderBy: { requestedAt: "desc" },
       take: 10,
     }),
+    countConfirmedSales(profile.id),
+    profile.isMaster
+      ? prisma.affiliateProfile.findMany({
+          where: { recruiterId: profile.id },
+          include: {
+            user: { select: { name: true } },
+            _count: {
+              select: {
+                referrals: {
+                  where: { kind: "direct", status: { in: ["approved", "paid"] } },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        })
+      : Promise.resolve([]),
+    profile.isMaster
+      ? prisma.affiliateReferral.findMany({
+          where: { affiliateId: profile.id, kind: "override", status: { in: ["approved", "paid"] } },
+          include: { parentReferral: { select: { affiliateId: true } } },
+        })
+      : Promise.resolve([]),
   ]);
+
+  // Override earnings per recruit (the recruit owns the parent direct row)
+  const overrideByRecruit = new Map<string, number>();
+  let overrideTotal = 0;
+  for (const o of overrides) {
+    const amount = parseFloat(o.commissionAmountAed.toString());
+    overrideTotal += amount;
+    const recruitId = o.parentReferral?.affiliateId;
+    if (recruitId) {
+      overrideByRecruit.set(recruitId, (overrideByRecruit.get(recruitId) ?? 0) + amount);
+    }
+  }
+
+  const threshold = masterSalesThreshold();
+  const overridePercent = masterOverridePercent();
+  const recruitLink = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/register?recruiter=${profile.referralCode}`;
 
   const referralLink = `${process.env.NEXT_PUBLIC_SITE_URL}/?ref=${profile.referralCode}`;
   const minPayout = parseFloat(process.env.AFFILIATE_MIN_PAYOUT_AED ?? "100");
@@ -79,6 +119,91 @@ export default async function DashboardPage() {
         <CopyButton text={referralLink} />
       </div>
 
+      {/* Master programme */}
+      {profile.isMaster ? (
+        <div className="card mt-6 p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="eyebrow mb-2">
+                Master affiliate · your recruit link
+              </p>
+              <p className="truncate font-mono text-sm text-ink">{recruitLink}</p>
+              <p className="mt-1 text-xs text-ink-soft">
+                Affiliates who join through this link become part of your team. You earn an
+                extra {overridePercent}% on every confirmed sale they generate — on top of
+                their own commission.
+              </p>
+            </div>
+            <CopyButton text={recruitLink} />
+          </div>
+
+          <div className="mt-6">
+            <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+              Your team · {recruits.length} recruit{recruits.length === 1 ? "" : "s"} ·{" "}
+              {fmt(overrideTotal)} earned
+            </p>
+            {recruits.length === 0 ? (
+              <p className="mt-3 text-sm text-ink-soft">
+                No recruits yet. Share your recruit link to start building your team.
+              </p>
+            ) : (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-ink-soft">
+                      <th className="py-2 pr-5 font-semibold">Recruit</th>
+                      <th className="py-2 pr-5 font-semibold">Joined</th>
+                      <th className="py-2 pr-5 font-semibold">Confirmed sales</th>
+                      <th className="py-2 font-semibold">Your earnings ({pc})</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {recruits.map((rec) => (
+                      <tr key={rec.id}>
+                        <td className="py-2.5 pr-5 font-medium">{rec.user.name}</td>
+                        <td className="py-2.5 pr-5 text-ink-soft">
+                          {new Intl.DateTimeFormat("en-GB").format(rec.createdAt)}
+                        </td>
+                        <td className="py-2.5 pr-5">{rec._count.referrals}</td>
+                        <td className="py-2.5 font-medium">
+                          {fmt(overrideByRecruit.get(rec.id) ?? 0)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="card mt-6 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="eyebrow mb-2">Become a Master affiliate</p>
+              <p className="text-sm text-ink-soft">
+                Reach {threshold} confirmed sales to unlock your own recruit link and earn an
+                extra {overridePercent}% on every sale your recruits make.
+              </p>
+            </div>
+            <p className="font-display text-2xl font-medium text-brand-deep">
+              {Math.min(confirmedSales, threshold)} / {threshold}
+            </p>
+          </div>
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-brand-tint">
+            <div
+              className="h-full rounded-full bg-brand"
+              style={{ width: `${Math.min(100, (confirmedSales / threshold) * 100)}%` }}
+            />
+          </div>
+          {confirmedSales >= threshold && (
+            <p className="mt-3 text-xs font-semibold text-brand-deep">
+              You've hit the target! Your promotion is being reviewed.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((s) => (
@@ -106,6 +231,7 @@ export default async function DashboardPage() {
                   <thead>
                     <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-ink-soft">
                       <th className="px-5 py-3 font-semibold">Date</th>
+                      <th className="px-5 py-3 font-semibold">Type</th>
                       <th className="px-5 py-3 font-semibold">Order value</th>
                       <th className="px-5 py-3 font-semibold">Commission ({pc})</th>
                       <th className="px-5 py-3 font-semibold">Status</th>
@@ -116,6 +242,15 @@ export default async function DashboardPage() {
                       <tr key={r.id}>
                         <td className="px-5 py-3 text-ink-soft">
                           {new Intl.DateTimeFormat("en-GB").format(r.createdAt)}
+                        </td>
+                        <td className="px-5 py-3">
+                          {r.kind === "override" ? (
+                            <span className="rounded-full bg-brand-tint px-2.5 py-1 text-xs font-semibold text-brand-deep">
+                              team
+                            </span>
+                          ) : (
+                            <span className="text-xs text-ink-soft">direct</span>
+                          )}
                         </td>
                         <td className="px-5 py-3">
                           {formatPrice(r.orderTotal.toString(), r.currency as never)}

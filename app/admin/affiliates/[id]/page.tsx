@@ -9,7 +9,9 @@ import {
   reviewReferralAction,
   setAffiliateStatusAction,
   setCommissionRateAction,
+  setMasterStatusAction,
 } from "@/app/admin/actions";
+import { countConfirmedSales, masterSalesThreshold, masterOverridePercent } from "@/lib/affiliate";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +30,14 @@ export default async function AdminAffiliateDetailPage({
       user: true,
       referrals: { orderBy: { createdAt: "desc" }, take: 50 },
       payoutRequests: { orderBy: { requestedAt: "desc" }, take: 20 },
+      recruiter: { include: { user: { select: { name: true } } } },
+      recruits: { include: { user: { select: { name: true, email: true } } } },
     },
   });
   if (!profile) notFound();
+
+  const confirmedSales = await countConfirmedSales(profile.id);
+  const threshold = masterSalesThreshold();
 
   const bank = {
     bankName: tryDecrypt(profile.bankName),
@@ -59,7 +66,18 @@ export default async function AdminAffiliateDetailPage({
             {profile.user.email} · code{" "}
             <span className="font-mono text-xs">{profile.referralCode}</span> ·{" "}
             {profile.user.emailVerifiedAt ? "email verified" : "email NOT verified"}
+            {profile.isMaster && (
+              <span className="ml-2 rounded-full bg-brand px-2.5 py-0.5 text-xs font-semibold text-white">
+                Master
+              </span>
+            )}
           </p>
+          {profile.recruiter && (
+            <p className="mt-1 text-xs text-ink-soft">
+              Recruited by {profile.recruiter.user.name}{" "}
+              <span className="font-mono">({profile.recruiter.referralCode})</span>
+            </p>
+          )}
         </div>
         <form action={setAffiliateStatusAction}>
           <input type="hidden" name="userId" value={profile.user.id} />
@@ -149,6 +167,47 @@ export default async function AdminAffiliateDetailPage({
         </div>
       </div>
 
+      {/* Master programme */}
+      <div className="card mt-6 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="eyebrow mb-2">Master programme</p>
+            <p className="text-sm text-ink-soft">
+              {confirmedSales} / {threshold} confirmed sales
+              {profile.isMaster
+                ? ` · master since ${profile.masterAt?.toLocaleDateString("en-GB") ?? "—"} · earns ${masterOverridePercent()}% override on ${profile.recruits.length} recruit${profile.recruits.length === 1 ? "" : "s"}`
+                : confirmedSales >= threshold
+                  ? " · eligible for promotion"
+                  : ""}
+            </p>
+          </div>
+          <form action={setMasterStatusAction}>
+            <input type="hidden" name="affiliateId" value={profile.id} />
+            <input type="hidden" name="action" value={profile.isMaster ? "demote" : "promote"} />
+            <button
+              type="submit"
+              className={
+                profile.isMaster
+                  ? "rounded-full border border-red-200 px-5 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50"
+                  : "btn-primary"
+              }
+            >
+              {profile.isMaster ? "Demote from Master" : "Promote to Master"}
+            </button>
+          </form>
+        </div>
+        {profile.recruits.length > 0 && (
+          <ul className="mt-4 space-y-1 border-t border-line pt-4 text-sm">
+            {profile.recruits.map((rec) => (
+              <li key={rec.id} className="flex justify-between gap-4">
+                <span className="font-medium">{rec.user.name}</span>
+                <span className="text-xs text-ink-soft">{rec.user.email}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       {/* Referral history */}
       <section className="mt-10">
         <h2 className="font-display text-xl font-medium text-brand-deep">Referral history</h2>
@@ -160,6 +219,7 @@ export default async function AdminAffiliateDetailPage({
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-ink-soft">
                   <th className="px-5 py-3 font-semibold">Date</th>
+                  <th className="px-5 py-3 font-semibold">Type</th>
                   <th className="px-5 py-3 font-semibold">Order</th>
                   <th className="px-5 py-3 font-semibold">Order total</th>
                   <th className="px-5 py-3 font-semibold">Commission (AED)</th>
@@ -173,6 +233,15 @@ export default async function AdminAffiliateDetailPage({
                     <td className="px-5 py-3 text-ink-soft">
                       {r.createdAt.toLocaleDateString("en-GB")}
                     </td>
+                    <td className="px-5 py-3">
+                      {r.kind === "override" ? (
+                        <span className="rounded-full bg-brand-tint px-2.5 py-1 text-xs font-semibold text-brand-deep">
+                          override
+                        </span>
+                      ) : (
+                        <span className="text-xs text-ink-soft">direct</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3 font-mono text-xs">{r.orderId.slice(0, 8)}…</td>
                     <td className="px-5 py-3">
                       {formatPrice(r.orderTotal.toString(), r.currency as Currency)}
@@ -182,7 +251,10 @@ export default async function AdminAffiliateDetailPage({
                     </td>
                     <td className="px-5 py-3 capitalize">{r.status}</td>
                     <td className="px-5 py-3">
-                      {r.status === "pending" && (
+                      {r.status === "pending" && r.kind === "override" && (
+                        <span className="text-xs text-ink-soft">reviewed with recruit&apos;s sale</span>
+                      )}
+                      {r.status === "pending" && r.kind === "direct" && (
                         <div className="flex gap-2">
                           <form action={reviewReferralAction}>
                             <input type="hidden" name="referralId" value={r.id} />

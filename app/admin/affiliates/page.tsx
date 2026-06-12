@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/adminAuth";
+import { masterSalesThreshold } from "@/lib/affiliate";
 import { formatPrice } from "@/config/brand";
 
 export const dynamic = "force-dynamic";
@@ -8,17 +9,26 @@ export const dynamic = "force-dynamic";
 export default async function AdminAffiliatesPage() {
   await requireAdmin();
 
-  const affiliates = await prisma.affiliateProfile.findMany({
-    include: {
-      user: true,
-      _count: { select: { referrals: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const [affiliates, pendingReview, confirmedCounts] = await Promise.all([
+    prisma.affiliateProfile.findMany({
+      include: {
+        user: true,
+        _count: { select: { referrals: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.affiliateReferral.count({
+      where: { status: "pending", kind: "direct" },
+    }),
+    prisma.affiliateReferral.groupBy({
+      by: ["affiliateId"],
+      where: { kind: "direct", status: { in: ["approved", "paid"] } },
+      _count: true,
+    }),
+  ]);
 
-  const pendingReview = await prisma.affiliateReferral.count({
-    where: { status: "pending" },
-  });
+  const threshold = masterSalesThreshold();
+  const confirmedByAffiliate = new Map(confirmedCounts.map((c) => [c.affiliateId, c._count]));
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -52,6 +62,7 @@ export default async function AdminAffiliatesPage() {
                 <th className="px-5 py-3 font-semibold">Code</th>
                 <th className="px-5 py-3 font-semibold">Rate</th>
                 <th className="px-5 py-3 font-semibold">Referrals</th>
+                <th className="px-5 py-3 font-semibold">Tier</th>
                 <th className="px-5 py-3 font-semibold">Pending balance</th>
                 <th className="px-5 py-3 font-semibold">Total earned</th>
                 <th className="px-5 py-3 font-semibold">Status</th>
@@ -68,6 +79,21 @@ export default async function AdminAffiliatesPage() {
                   <td className="px-5 py-3 font-mono text-xs">{a.referralCode}</td>
                   <td className="px-5 py-3">{a.commissionRate.toString()}%</td>
                   <td className="px-5 py-3">{a._count.referrals}</td>
+                  <td className="px-5 py-3">
+                    {a.isMaster ? (
+                      <span className="rounded-full bg-brand px-2.5 py-1 text-xs font-semibold text-white">
+                        Master
+                      </span>
+                    ) : (confirmedByAffiliate.get(a.id) ?? 0) >= threshold ? (
+                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                        Eligible
+                      </span>
+                    ) : (
+                      <span className="text-xs text-ink-soft">
+                        {confirmedByAffiliate.get(a.id) ?? 0}/{threshold}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-5 py-3">{formatPrice(a.pendingBalance.toString(), "AED")}</td>
                   <td className="px-5 py-3">{formatPrice(a.totalEarned.toString(), "AED")}</td>
                   <td className="px-5 py-3">

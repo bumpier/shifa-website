@@ -1,7 +1,7 @@
 "use server";
 
 import crypto from "crypto";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import {
@@ -11,7 +11,7 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import { uniqueReferralCode } from "@/lib/affiliate";
-import { sendPasswordResetEmail } from "@/lib/email";
+import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
 import {
   ForgotPasswordSchema,
   LoginSchema,
@@ -69,6 +69,21 @@ export async function registerAction(
   const referralCode = await uniqueReferralCode();
   const defaultRate = parseFloat(process.env.AFFILIATE_DEFAULT_COMMISSION ?? "10");
 
+  // Pyramid: if they arrived via a master's recruit link, attach them to
+  // that master permanently. Invalid or non-master codes are ignored —
+  // registration always proceeds.
+  let recruiterId: string | undefined;
+  const recruitCode = (await cookies()).get("recruit_code")?.value;
+  if (recruitCode && /^[a-z0-9]{4,16}$/i.test(recruitCode)) {
+    const recruiter = await prisma.affiliateProfile.findUnique({
+      where: { referralCode: recruitCode.toLowerCase() },
+      include: { user: true },
+    });
+    if (recruiter?.isMaster && recruiter.user.status === "active") {
+      recruiterId = recruiter.id;
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     const created = await tx.user.create({
       data: {
@@ -77,7 +92,7 @@ export async function registerAction(
         passwordHash,
         role: "affiliate",
         affiliateProfile: {
-          create: { referralCode, commissionRate: defaultRate },
+          create: { referralCode, commissionRate: defaultRate, recruiterId },
         },
       },
     });

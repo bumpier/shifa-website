@@ -44,9 +44,10 @@ export default async function AdminOrderDetailPage({
 
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { referral: true },
+    include: { referrals: true },
   });
   if (!order) notFound();
+  const directReferral = order.referrals.find((r) => r.kind === "direct");
 
   const items = JSON.parse(order.items) as OrderItem[];
   const address = JSON.parse(order.shippingAddress) as Address;
@@ -98,9 +99,9 @@ export default async function AdminOrderDetailPage({
               {order.refCode ? (
                 <>
                   <span className="font-mono text-xs">{order.refCode}</span>
-                  {order.referral && (
+                  {directReferral && (
                     <span className="ml-2 text-xs text-ink-soft">
-                      ({order.referral.status})
+                      ({directReferral.status})
                     </span>
                   )}
                 </>

@@ -24,7 +24,7 @@ import {
   recordFailure,
 } from "@/lib/rateLimit";
 import { approveReferral, rejectReferral } from "@/lib/affiliate";
-import { sendAffiliateInviteEmail } from "@/lib/email";
+import { sendAffiliateInviteEmail, sendMasterPromotionEmail } from "@/lib/email";
 import { CommissionRateSchema, ProductSchema } from "@/lib/validation";
 import { z } from "zod";
 import type { FormState } from "@/app/(store)/auth/actions";
@@ -259,6 +259,35 @@ export async function setAffiliateStatusAction(formData: FormData): Promise<void
   const status = z.enum(["active", "suspended"]).parse(formData.get("status"));
   await prisma.user.update({ where: { id: userId }, data: { status } });
   revalidatePath("/admin/affiliates");
+}
+
+export async function setMasterStatusAction(formData: FormData): Promise<void> {
+  await requireAdminRole("ADMIN");
+  const affiliateId = z.string().uuid().parse(formData.get("affiliateId"));
+  const action = z.enum(["promote", "demote"]).parse(formData.get("action"));
+
+  const profile = await prisma.affiliateProfile.findUnique({
+    where: { id: affiliateId },
+    include: { user: true },
+  });
+  if (!profile) return;
+
+  if (action === "promote" && !profile.isMaster) {
+    await prisma.affiliateProfile.update({
+      where: { id: affiliateId },
+      data: { isMaster: true, masterAt: new Date() },
+    });
+    await sendMasterPromotionEmail(profile.user.email, profile.referralCode);
+  } else if (action === "demote" && profile.isMaster) {
+    // Existing recruits stay linked; they just stop generating overrides
+    await prisma.affiliateProfile.update({
+      where: { id: affiliateId },
+      data: { isMaster: false, masterAt: null },
+    });
+  }
+
+  revalidatePath("/admin/affiliates");
+  revalidatePath(`/admin/affiliates/${affiliateId}`);
 }
 
 export async function reviewReferralAction(formData: FormData): Promise<void> {

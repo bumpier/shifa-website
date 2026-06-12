@@ -50,6 +50,19 @@ export async function sendPasswordResetEmail(to: string, token: string) {
   );
 }
 
+export async function sendMasterPromotionEmail(to: string, referralCode: string) {
+  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/register?recruiter=${referralCode}`;
+  await send(
+    to,
+    `You're now a ${brand.name} Master affiliate`,
+    layout(`<p>Congratulations! You've been promoted to <strong>Master affiliate</strong>.</p>
+      <p>You can now recruit your own affiliates. Anyone who joins through your personal link below becomes part of your team, and you'll earn an extra commission on every confirmed sale they generate — on top of their own earnings.</p>
+      <p><a href="${url}" style="background:${brand.primaryColor};color:#fff;padding:12px 24px;border-radius:24px;text-decoration:none">Your recruit link</a></p>
+      <p>Or copy this link: ${url}</p>
+      <p>Your full team overview is available in your affiliate dashboard.</p>`)
+  );
+}
+
 export async function sendAffiliateInviteEmail(to: string, token: string) {
   const url = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/register?token=${token}`;
   await send(
