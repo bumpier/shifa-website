@@ -54,6 +54,21 @@ payment page that fires correctly signed webhooks at the real endpoint, so
 the whole flow (checkout → webhook → paid order → commission) works locally.
 It returns 404 whenever an API key is configured or `PAYKASSMA_ENV=production`.
 
+## Repurchase nudge emails
+
+Products with `supplyDays > 0` (admin → product form) trigger an automatic
+"time to restock" email: `orderDate + min(qty × supplyDays) − 4 days`.
+Customers who placed a newer order, or who unsubscribed, are skipped; each
+order is nudged at most once (enforced by the `EmailLog` unique constraint).
+Order confirmation / shipped / delivered emails are sent automatically from
+the payment webhooks and the admin status buttons.
+
+Schedule the daily job on the server:
+
+```cron
+15 9 * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<your-site>/api/cron/nudges
+```
+
 ## Affiliate programme
 
 - Admin generates a single-use, 48-hour invite at `/admin/affiliates/invite`
