@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { CheckoutSchema, verifyOrigin } from "@/lib/validation";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { createPayment } from "@/lib/paykassma";
+import { createCryptoPayment, type CryptoPaymentMethod } from "@/lib/nowpayments";
 import { priceFor, priceForVariant } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
@@ -27,8 +28,10 @@ export async function POST(req: Request) {
     }
     const input = parsed.data;
 
-    // Wallets settle in PKR only
-    if (input.paymentMethod !== "card" && input.currency !== "PKR") {
+    const isCrypto = ["btc", "eth", "usdt"].includes(input.paymentMethod);
+
+    // Wallets (non-card, non-crypto) settle in PKR only
+    if (!isCrypto && input.paymentMethod !== "card" && input.currency !== "PKR") {
       return NextResponse.json({ error: "Invalid order details" }, { status: 400 });
     }
 
@@ -42,7 +45,7 @@ export async function POST(req: Request) {
     }
 
     let total = new Prisma.Decimal(0);
-    let subtotalAed = new Prisma.Decimal(0);
+    let subtotalUsd = new Prisma.Decimal(0);
     const orderItems = input.items.map((line) => {
       const product = products.find((p) => p.id === line.productId)!;
       if (product.stock < line.qty) {
@@ -50,24 +53,24 @@ export async function POST(req: Request) {
       }
 
       let unitPriceStr: string;
-      let unitPriceAedStr: string;
+      let unitPriceUsdStr: string;
       if (line.variantLabel) {
         const vPrice = priceForVariant(product, line.variantLabel, input.currency);
-        const vPriceAed = priceForVariant(product, line.variantLabel, "AED");
-        if (!vPrice || !vPriceAed) {
+        const vPriceUsd = priceForVariant(product, line.variantLabel, "USD");
+        if (!vPrice || !vPriceUsd) {
           throw Object.assign(new Error("variant"), { code: "INVALID_VARIANT" });
         }
         unitPriceStr = vPrice;
-        unitPriceAedStr = vPriceAed;
+        unitPriceUsdStr = vPriceUsd;
       } else {
         unitPriceStr = priceFor(product, input.currency);
-        unitPriceAedStr = product.priceAed.toFixed(2);
+        unitPriceUsdStr = priceFor(product, "USD");
       }
 
       const unitPrice = new Prisma.Decimal(unitPriceStr);
-      const unitPriceAed = new Prisma.Decimal(unitPriceAedStr);
+      const unitPriceUsd = new Prisma.Decimal(unitPriceUsdStr);
       total = total.add(unitPrice.mul(line.qty));
-      subtotalAed = subtotalAed.add(unitPriceAed.mul(line.qty));
+      subtotalUsd = subtotalUsd.add(unitPriceUsd.mul(line.qty));
       const itemName = line.variantLabel ? `${product.name} (${line.variantLabel})` : product.name;
       return {
         productId: product.id,
@@ -75,9 +78,16 @@ export async function POST(req: Request) {
         name: itemName,
         qty: line.qty,
         unitPrice: unitPrice.toFixed(2),
-        unitPriceAed: unitPriceAed.toFixed(2),
+        unitPriceUsd: unitPriceUsd.toFixed(2),
       };
     });
+
+    // Apply 10% crypto discount
+    if (isCrypto) {
+      const discount = total.mul(0.1); // 10% off
+      total = total.sub(discount);
+      subtotalUsd = subtotalUsd.mul(0.9); // also apply to USD basis
+    }
 
     const refCode = (await cookies()).get("ref_code")?.value ?? null;
 
@@ -97,28 +107,55 @@ export async function POST(req: Request) {
         items: JSON.stringify(orderItems),
         currency: input.currency,
         totalAmount: total,
-        subtotalAed,
+        subtotalUsd,
         paymentMethod: input.paymentMethod,
         refCode: refCode && /^[a-z0-9]{4,16}$/.test(refCode) ? refCode : null,
       },
     });
 
-    const payment = await createPayment({
-      orderId: order.id,
-      amount: total.toFixed(2),
-      currency: input.currency,
-      method: input.paymentMethod,
-      customerName: input.name,
-      customerEmail: input.email,
-      customerPhone: input.phone,
-    });
+    let paymentRef: string;
+    let paymentUrl: string;
 
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { paykassmaRef: payment.paymentRef },
-    });
+    if (isCrypto) {
+      const cryptoPayment = await createCryptoPayment({
+        orderId: order.id,
+        amount: subtotalUsd.toFixed(2), // USD total, 10% crypto discount already applied
+        method: input.paymentMethod as CryptoPaymentMethod,
+        customerName: input.name,
+        customerEmail: input.email,
+      });
 
-    return NextResponse.json({ paymentUrl: payment.paymentUrl, orderId: order.id });
+      paymentRef = cryptoPayment.paymentRef;
+      paymentUrl = cryptoPayment.paymentUrl;
+
+      await prisma.order.update({
+        where: { id: order.id },
+        data: {
+          paykassmaRef: cryptoPayment.checkoutId,
+          notes: `Crypto payment (${input.paymentMethod.toUpperCase()}) - 10% discount applied`,
+        },
+      });
+    } else {
+      const payment = await createPayment({
+        orderId: order.id,
+        amount: total.toFixed(2),
+        currency: input.currency,
+        method: input.paymentMethod as any,
+        customerName: input.name,
+        customerEmail: input.email,
+        customerPhone: input.phone,
+      });
+
+      paymentRef = payment.paymentRef;
+      paymentUrl = payment.paymentUrl;
+
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { paykassmaRef: payment.paymentRef },
+      });
+    }
+
+    return NextResponse.json({ paymentUrl, orderId: order.id });
   } catch (err) {
     const code = (err as { code?: string }).code;
     if (code === "OUT_OF_STOCK") {

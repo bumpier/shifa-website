@@ -17,7 +17,7 @@ interface OrderItem {
   name: string;
   qty: number;
   unitPrice: string;
-  unitPriceAed: string;
+  unitPriceUsd: string;
 }
 
 function siteUrl(): string {

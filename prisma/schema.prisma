@@ -34,7 +34,7 @@ model Order {
   customerEmail   String
   customerPhone   String
   shippingAddress String // JSON
-  items           String // JSON [{productId, slug, name, qty, unitPrice, unitPriceAed}]
+  items           String // JSON [{productId, slug, name, qty, unitPrice, unitPriceUsd}]
   currency        String
   totalAmount     Decimal
   subtotalUsd     Decimal  @default(0) // commission basis (USD ≈ USDT), computed at order time

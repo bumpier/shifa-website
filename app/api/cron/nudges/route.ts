@@ -18,7 +18,7 @@ interface OrderItem {
   name: string;
   qty: number;
   unitPrice: string;
-  unitPriceAed: string;
+  unitPriceUsd: string;
 }
 
 function authorized(req: Request): boolean {
