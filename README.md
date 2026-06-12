@@ -4,7 +4,7 @@ A self-contained e-commerce site for physical products with a built-in admin
 panel, an invite-only affiliate programme, and Paykassma payments (cards,
 JazzCash, Easypaisa, multi-currency: AED / PKR / USD / GBP).
 
-Stack: Next.js 15 (App Router) · SQLite via Prisma · Tailwind CSS · Jose + bcrypt · Mailgun.
+Stack: Next.js 15 (App Router) · SQLite via Prisma · Tailwind CSS · Jose + bcrypt · Postal (self-hosted email).
 
 ## Quick start
 
@@ -69,13 +69,13 @@ Schedule the daily job on the server:
 15 9 * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<your-site>/api/cron/nudges
 ```
 
-## Email setup (Mailgun)
+## Email setup (Postal, self-hosted)
 
-Transactional emails (verification, password reset, order confirmation, shipped/delivered, nudges) go through Mailgun.
+Transactional emails (verification, password reset, order confirmation, shipped/delivered, nudges) go through a self-hosted [Postal](https://postalserver.io) server via its HTTP API.
 
-1. Sign up free at [mailgun.com](https://mailgun.com) or [mailgun.eu](https://mailgun.eu)
-2. Add your domain and get your API key
-3. Set `MAILGUN_API_KEY` and `MAILGUN_DOMAIN` in `.env.local`
+1. In the Postal web UI, create a mail server for the site and add your sending domain (set up the SPF/DKIM/return-path DNS records it shows you)
+2. Create an **API** credential for that mail server (Mail Server → Credentials → API)
+3. Set `POSTAL_URL` (base URL of your Postal install) and `POSTAL_API_KEY` in `.env.local`, and set `EMAIL_FROM` to an address on the sending domain
 4. In dev mode with no API key, emails print to the console
 
 ## Affiliate programme
@@ -84,11 +84,12 @@ Transactional emails (verification, password reset, order confirmation, shipped/
 - Affiliate registers via the link, verifies email, gets `/dashboard`
 - Referral links: `https://yoursite.com/?ref=CODE` → 30-day cookie, last-click wins
 - Commissions are created **only** by the payment webhook (order → paid),
-  calculated in AED from the order's AED subtotal, and reviewed
-  (approve/reject) in the admin panel
-- Payouts: affiliate requests when balance ≥ `AFFILIATE_MIN_PAYOUT_AED`;
-  admin processes manually and marks paid
-- Bank details are AES-256-GCM encrypted at rest
+  tracked in USDT (calculated from the order's USD subtotal — USDT is
+  dollar-pegged), and reviewed (approve/reject) in the admin panel
+- Payouts: affiliate requests when balance ≥ `AFFILIATE_MIN_PAYOUT_USDT`;
+  admin sends USDT on TRC20 manually within 24–48 hours, records the tx
+  hash, and marks paid
+- The affiliate's USDT (TRC20) wallet address is AES-256-GCM encrypted at rest
 
 ## Useful paths
 
@@ -114,4 +115,4 @@ schema) and move uploads to Vercel Blob.
 See the security checklist in `docs/CLAUDE.md` §12. Already wired in:
 security headers, bcrypt admin auth + lockout, Zod validation on every
 input, webhook signature verification, UUID order IDs, rate limiting,
-generic error responses, httpOnly/sameSite cookies, encrypted bank details.
+generic error responses, httpOnly/sameSite cookies, encrypted wallet addresses.

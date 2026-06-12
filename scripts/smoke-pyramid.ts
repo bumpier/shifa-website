@@ -69,7 +69,7 @@ async function main() {
       items: "[]",
       currency: "AED",
       totalAmount: 1000,
-      subtotalAed: 1000,
+      subtotalUsd: 1000,
       paymentMethod: "card",
       refCode: "smokerecruit",
       status: "paid",
@@ -86,8 +86,8 @@ async function main() {
   assert(direct.affiliateId === recruit.affiliateProfile!.id, "direct belongs to recruit");
   assert(override.affiliateId === master.affiliateProfile!.id, "override belongs to master");
   assert(override.parentReferralId === direct.id, "override linked to direct");
-  assert(direct.commissionAmountAed.toString() === "100", "direct = 10% of 1000");
-  assert(override.commissionAmountAed.toString() === "25", "override = 2.5% of 1000");
+  assert(direct.commissionAmountUsdt.toString() === "100", "direct = 10% of 1000");
+  assert(override.commissionAmountUsdt.toString() === "25", "override = 2.5% of 1000");
 
   // 2) Approving the direct cascades to the override and both balances move
   await approveReferral(direct.id);
@@ -132,7 +132,7 @@ async function main() {
       items: "[]",
       currency: "AED",
       totalAmount: 500,
-      subtotalAed: 500,
+      subtotalUsd: 500,
       paymentMethod: "card",
       refCode: "smokerecruit",
       status: "paid",

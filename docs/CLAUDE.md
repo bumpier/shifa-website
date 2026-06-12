@@ -26,7 +26,7 @@
 | Database | **SQLite via Prisma** | Self-contained, no external DB server needed |
 | Admin/CMS | **Custom admin panel** (built-in) | No third-party CMS dependency |
 | Auth | **Jose + bcrypt** | Lightweight JWT, no NextAuth overhead |
-| Email | **Resend** | Simple transactional email for invites + password reset |
+| Email | **Postal** (self-hosted) | Transactional email via our own Postal server HTTP API |
 | Payments | **Paykassma** | Single API: JazzCash, Easypaisa, Visa/MC, multi-currency, high-risk friendly |
 | Styling | **Tailwind CSS** | Easy to theme via config |
 | Deployment | **Vercel** (free tier) | Zero-config, works with Next.js perfectly |
@@ -109,15 +109,15 @@ name, createdAt
 ### AffiliateProfile
 ```
 id, userId (FK), referralCode (unique 8-char slug),
-commissionRate (default 10.00, stored as %), bankName,
-bankAccountName, bankAccountNumber, bankIBAN, bankCountry,
-totalEarned, totalPaid, pendingBalance, createdAt, updatedAt
+commissionRate (default 10.00, stored as %),
+usdtAddress (TRC20, encrypted at rest),
+totalEarned, totalPaid, pendingBalance (all USDT), createdAt, updatedAt
 ```
 
 ### AffiliateReferral
 ```
 id, affiliateId (FK), orderId (FK), orderTotal, currency,
-commissionRate, commissionAmount, commissionCurrencyAED,
+commissionRate, commissionAmountUsdt,
 status (pending/approved/paid/rejected), createdAt
 ```
 
@@ -129,9 +129,10 @@ usedByUserId (FK nullable), expiresAt (48hr TTL), createdAt
 
 ### PayoutRequest
 ```
-id, affiliateId (FK), amount, currency (always AED),
+id, affiliateId (FK), amount, currency (always USDT),
 status (requested/processing/paid/rejected),
-bankSnapshot (JSON — copy of bank details at time of request),
+walletSnapshot (JSON — encrypted wallet address + network at request time),
+txHash (TRC20 transaction hash, set when marked paid),
 adminNote, requestedAt, processedAt
 ```
 
@@ -181,8 +182,9 @@ PAYKASSMA_ENV=sandbox              # switch to "production" for go-live
 JWT_SECRET=                        # min 32 random chars
 ADMIN_PASSWORD=                    # hashed with bcrypt on first run
 AFFILIATE_DEFAULT_COMMISSION=10    # percent
-AFFILIATE_MIN_PAYOUT_AED=100       # minimum payout threshold
-RESEND_API_KEY=                    # for invite + reset emails
+AFFILIATE_MIN_PAYOUT_USDT=25       # minimum payout threshold (USDT, TRC20)
+POSTAL_URL=                        # base URL of self-hosted Postal server
+POSTAL_API_KEY=                    # Postal server API credential (invite + reset + order emails)
 ENCRYPTION_KEY=                    # 32-byte hex key for encrypting bank details
 ```
 
@@ -284,28 +286,32 @@ Use a simple lookup table — prices are stored per currency in the Product tabl
 6. When a customer visits via that link, the referral code is stored in a **cookie (30-day TTL)**
 7. On completed, paid order: a `AffiliateReferral` record is created with status `pending`
 8. Admin reviews and approves commissions in the admin panel
-9. When affiliate requests a payout, admin processes it manually via bank transfer
-10. Admin marks payout as `paid` — balance updates accordingly
+9. When affiliate requests a payout, admin sends USDT (TRC20) manually from the
+   business wallet within 24–48 hours
+10. Admin records the TRC20 tx hash and marks the payout as `paid` — balance
+    updates accordingly
 
 ### Referral Tracking
 - Referral code stored in a cookie: `ref_code`, `sameSite=lax`, `maxAge=2592000` (30 days)
 - Last-click attribution — if customer clicks a new affiliate link, the cookie is overwritten
 - Commission only created when order status changes to `paid` (via Paykassma webhook)
-- Commission amount calculated in AED at time of order (stored alongside original currency)
+- Commission amount tracked in USDT, calculated from the order's USD subtotal at
+  time of order (USDT is dollar-pegged; original order currency kept for audit)
 
 ### Affiliate Dashboard (`/dashboard`)
 - Show unique referral link with one-click copy
-- Lifetime stats: total referrals, total earned (AED), pending balance, paid out
+- Lifetime stats: total referrals, total earned (USDT), pending balance, paid out
 - Table of recent referrals: date, order value, commission, status
-- Payout request button (only active when pending balance ≥ minimum threshold, default AED 100)
-- Bank details form — affiliate enters/updates their bank info for payouts
+- Payout request button (only active when pending balance ≥ minimum threshold,
+  default 25 USDT) with a notice that payouts are sent within 24–48 hours
+- Wallet form — affiliate enters/updates their USDT (TRC20) address for payouts
 - Read-only view — affiliates cannot see customer names or full order details
 
 ### Commission Rules
 - Default rate: configurable via `AFFILIATE_DEFAULT_COMMISSION` env var (e.g. `10` = 10%)
 - Per-affiliate override possible from admin panel
 - Commission is calculated on the **order subtotal** (excluding shipping if applicable)
-- Commissions are always stored and paid in **AED** regardless of order currency
+- Commissions are always stored and paid in **USDT** regardless of order currency
 - Pending commissions are auto-rejected if the order is refunded/cancelled
 
 ### Security for Affiliate Accounts
@@ -315,7 +321,7 @@ Use a simple lookup table — prices are stored per currency in the Product tabl
 - JWT session tokens, `httpOnly` cookie, 24-hour expiry with refresh
 - Email verification required before dashboard access
 - Affiliates cannot modify commission rates or payout status themselves
-- Bank details stored encrypted at rest (use `lib/encrypt.ts` with AES-256-GCM)
+- Wallet addresses stored encrypted at rest (use `lib/encrypt.ts` with AES-256-GCM)
 
 ---
 

@@ -39,11 +39,11 @@ async function makeOrder(email: string, productId: string, createdAt: Date, stat
       customerPhone: "+10000000000",
       shippingAddress: JSON.stringify({ line1: "1 Test St", line2: null, city: "Test", country: "Testland", postalCode: null }),
       items: JSON.stringify([
-        { productId, slug: "smoke-nudge-tea", name: "Smoke Nudge Tea", qty: 1, unitPrice: "10.00", unitPriceAed: "10.00" },
+        { productId, slug: "smoke-nudge-tea", name: "Smoke Nudge Tea", qty: 1, unitPrice: "10.00", unitPriceUsd: "10.00" },
       ]),
       currency: "AED",
       totalAmount: 10,
-      subtotalAed: 10,
+      subtotalUsd: 10,
       paymentMethod: "card",
       createdAt,
     },
