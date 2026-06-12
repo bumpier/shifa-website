@@ -37,7 +37,7 @@ model Order {
   items           String // JSON [{productId, slug, name, qty, unitPrice, unitPriceAed}]
   currency        String
   totalAmount     Decimal
-  subtotalAed     Decimal  @default(0) // commission basis, computed at order time
+  subtotalUsd     Decimal  @default(0) // commission basis (USD ≈ USDT), computed at order time
   paykassmaRef    String?
   paymentMethod   String // card | jazzcash | easypaisa
   refCode         String? // affiliate referral code captured from cookie
@@ -72,16 +72,11 @@ model AffiliateProfile {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   referralCode    String   @unique
   commissionRate  Decimal  @default(10.0) // percent
-  // Bank details are AES-256-GCM encrypted at rest (lib/encrypt.ts)
-  bankName        String?
-  bankAccountName String?
-  bankAccountNumber String?
-  bankIBAN        String?
-  bankCountry     String?
-  payoutCurrency  String   @default("AED") // preferred payout currency
-  totalEarned     Decimal  @default(0) // AED, approved + paid
-  totalPaid       Decimal  @default(0) // AED
-  pendingBalance  Decimal  @default(0) // AED, approved but unpaid
+  // USDT (TRC20) payout address — AES-256-GCM encrypted at rest (lib/encrypt.ts)
+  usdtAddress     String?
+  totalEarned     Decimal  @default(0) // USDT, approved + paid
+  totalPaid       Decimal  @default(0) // USDT
+  pendingBalance  Decimal  @default(0) // USDT, approved but unpaid
   // Pyramid: set once at registration from the recruit_code cookie, never changed
   recruiterId     String?
   recruiter       AffiliateProfile?  @relation("Recruits", fields: [recruiterId], references: [id])
@@ -104,8 +99,7 @@ model AffiliateReferral {
   orderTotal           Decimal
   currency             String
   commissionRate       Decimal
-  commissionAmount     Decimal // in order currency basis (AED), kept for audit
-  commissionAmountAed  Decimal // always AED — what gets paid
+  commissionAmountUsdt Decimal // USDT (≈ USD); basis = order.subtotalUsd
   status               String   @default("pending") // pending | approved | paid | rejected
   // direct = the referring affiliate's own commission;
   // override = a master's 2.5% cut of a direct recruit's sale, tied to the
@@ -143,11 +137,12 @@ model PayoutRequest {
   id           String    @id @default(uuid())
   affiliateId  String
   affiliate    AffiliateProfile @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
-  amount       Decimal
-  currency     String    @default("AED")
-  status       String    @default("requested") // requested | processing | paid | rejected
-  bankSnapshot String // JSON copy of (encrypted) bank details at request time
-  adminNote    String?
+  amount         Decimal // USDT
+  currency       String    @default("USDT")
+  status         String    @default("requested") // requested | processing | paid | rejected
+  walletSnapshot String // JSON {usdtAddress (encrypted), network:"TRC20"} at request time
+  txHash         String? // TRC20 transaction hash, set by admin when marking paid
+  adminNote      String?
   requestedAt  DateTime  @default(now())
   processedAt  DateTime?
 }
