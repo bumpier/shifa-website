@@ -131,7 +131,7 @@ export async function POST(req: Request) {
       await prisma.order.update({
         where: { id: order.id },
         data: {
-          paykassmaRef: cryptoPayment.checkoutId,
+          paykassmaRef: cryptoPayment.paymentRef,
           notes: `Crypto payment (${input.paymentMethod.toUpperCase()}) - 10% discount applied`,
         },
       });

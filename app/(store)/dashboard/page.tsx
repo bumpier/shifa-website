@@ -3,10 +3,10 @@ import { prisma } from "@/lib/db";
 import { getCurrentAffiliate } from "@/lib/auth";
 import { countConfirmedSales, masterSalesThreshold, masterOverridePercent } from "@/lib/affiliate";
 import { tryDecrypt } from "@/lib/encrypt";
-import { convertFromAed, formatPrice, type Currency } from "@/config/brand";
+import { formatPrice, formatUsdt, type Currency } from "@/config/brand";
 import { logoutAction } from "@/app/(store)/auth/actions";
 import { CopyButton } from "@/components/CopyButton";
-import { BankDetailsForm, PayoutButton } from "./DashboardForms";
+import { PayoutButton, WalletForm } from "./DashboardForms";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
   const overrideByRecruit = new Map<string, number>();
   let overrideTotal = 0;
   for (const o of overrides) {
-    const amount = parseFloat(o.commissionAmountAed.toString());
+    const amount = parseFloat(o.commissionAmountUsdt.toString());
     overrideTotal += amount;
     const recruitId = o.parentReferral?.affiliateId;
     if (recruitId) {
@@ -76,12 +76,11 @@ export default async function DashboardPage() {
   const recruitLink = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/register?recruiter=${profile.referralCode}`;
 
   const referralLink = `${process.env.NEXT_PUBLIC_SITE_URL}/?ref=${profile.referralCode}`;
-  const minPayout = parseFloat(process.env.AFFILIATE_MIN_PAYOUT_AED ?? "100");
+  const minPayout = parseFloat(process.env.AFFILIATE_MIN_PAYOUT_USDT ?? "25");
   const pending = parseFloat(profile.pendingBalance.toString());
-  const hasBank = !!profile.bankAccountNumber;
+  const hasWallet = !!profile.usdtAddress;
 
-  const pc = profile.payoutCurrency as Currency;
-  const fmt = (aed: number | string) => formatPrice(convertFromAed(aed, pc), pc);
+  const fmt = (v: number | string) => formatUsdt(v);
 
   const stats = [
     { label: "Total referrals", value: String(referrals.length) },
@@ -113,7 +112,7 @@ export default async function DashboardPage() {
           <p className="truncate font-mono text-sm text-ink">{referralLink}</p>
           <p className="mt-1 text-xs text-ink-soft">
             You earn {profile.commissionRate.toString()}% of every order placed through this
-            link, paid out in {pc}.
+            link, paid out in USDT.
           </p>
         </div>
         <CopyButton text={referralLink} />
@@ -154,7 +153,7 @@ export default async function DashboardPage() {
                       <th className="py-2 pr-5 font-semibold">Recruit</th>
                       <th className="py-2 pr-5 font-semibold">Joined</th>
                       <th className="py-2 pr-5 font-semibold">Confirmed sales</th>
-                      <th className="py-2 font-semibold">Your earnings ({pc})</th>
+                      <th className="py-2 font-semibold">Your earnings (USDT)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
@@ -233,7 +232,7 @@ export default async function DashboardPage() {
                       <th className="px-5 py-3 font-semibold">Date</th>
                       <th className="px-5 py-3 font-semibold">Type</th>
                       <th className="px-5 py-3 font-semibold">Order value</th>
-                      <th className="px-5 py-3 font-semibold">Commission ({pc})</th>
+                      <th className="px-5 py-3 font-semibold">Commission (USDT)</th>
                       <th className="px-5 py-3 font-semibold">Status</th>
                     </tr>
                   </thead>
@@ -256,7 +255,7 @@ export default async function DashboardPage() {
                           {formatPrice(r.orderTotal.toString(), r.currency as never)}
                         </td>
                         <td className="px-5 py-3 font-medium">
-                          {fmt(r.commissionAmountAed.toString())}
+                          {fmt(r.commissionAmountUsdt.toString())}
                         </td>
                         <td className="px-5 py-3">
                           <span
@@ -295,9 +294,21 @@ export default async function DashboardPage() {
                           {new Intl.DateTimeFormat("en-GB").format(p.requestedAt)}
                         </td>
                         <td className="px-5 py-3 font-medium">
-                          {formatPrice(p.amount.toString(), p.currency as Currency)}
+                          {formatUsdt(p.amount.toString())}
                         </td>
-                        <td className="px-5 py-3 capitalize text-ink-soft">{p.status}</td>
+                        <td className="px-5 py-3 capitalize text-ink-soft">
+                          {p.status}
+                          {p.txHash && (
+                            <a
+                              href={`https://tronscan.org/#/transaction/${p.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-2 font-mono text-xs normal-case text-brand underline"
+                            >
+                              {p.txHash.slice(0, 10)}…
+                            </a>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -318,30 +329,25 @@ export default async function DashboardPage() {
               </span>
               . Minimum payout is {fmt(minPayout)}.
             </p>
-            <PayoutButton disabled={pending < minPayout || !hasBank} />
-            {!hasBank && (
+            <p className="mt-2 text-xs leading-relaxed text-amber-700">
+              Payouts are processed manually and sent in USDT (TRC20) within 24–48 hours
+              of your request — they are not instant.
+            </p>
+            <PayoutButton disabled={pending < minPayout || !hasWallet} />
+            {!hasWallet && (
               <p className="mt-3 text-xs text-amber-700">
-                Add your bank details below to enable payouts.
+                Add your USDT wallet address below to enable payouts.
               </p>
             )}
           </div>
 
-          {/* Bank details */}
+          {/* Payout wallet */}
           <div className="card p-6">
-            <p className="eyebrow mb-3">Bank details</p>
+            <p className="eyebrow mb-3">Payout wallet</p>
             <p className="mb-5 text-xs leading-relaxed text-ink-soft">
-              Used for bank-transfer payouts. Stored encrypted.
+              Where your USDT payouts are sent. Stored encrypted.
             </p>
-            <BankDetailsForm
-              defaults={{
-                bankName: tryDecrypt(profile.bankName) ?? "",
-                bankAccountName: tryDecrypt(profile.bankAccountName) ?? "",
-                bankAccountNumber: tryDecrypt(profile.bankAccountNumber) ?? "",
-                bankIBAN: tryDecrypt(profile.bankIBAN) ?? "",
-                bankCountry: tryDecrypt(profile.bankCountry) ?? "",
-                payoutCurrency: profile.payoutCurrency,
-              }}
-            />
+            <WalletForm defaults={{ usdtAddress: tryDecrypt(profile.usdtAddress) ?? "" }} />
           </div>
         </aside>
       </div>

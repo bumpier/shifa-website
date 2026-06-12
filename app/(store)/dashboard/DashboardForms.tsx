@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { FormMessage, SubmitButton } from "@/components/forms";
 import type { FormState } from "@/app/(store)/auth/actions";
-import { requestPayoutAction, saveBankDetailsAction } from "./actions";
+import { requestPayoutAction, saveWalletAction } from "./actions";
 
 const initial: FormState = {};
 
@@ -20,65 +20,33 @@ export function PayoutButton({ disabled }: { disabled: boolean }) {
   );
 }
 
-const SUPPORTED_CURRENCIES = [
-  { value: "AED", label: "AED — UAE Dirham" },
-  { value: "PKR", label: "PKR — Pakistani Rupee" },
-  { value: "USD", label: "USD — US Dollar" },
-  { value: "GBP", label: "GBP — British Pound" },
-  { value: "EUR", label: "EUR — Euro" },
-] as const;
-
-export function BankDetailsForm({
-  defaults,
-}: {
-  defaults: {
-    bankName: string;
-    bankAccountName: string;
-    bankAccountNumber: string;
-    bankIBAN: string;
-    bankCountry: string;
-    payoutCurrency: string;
-  };
-}) {
-  const [state, action] = useActionState(saveBankDetailsAction, initial);
+export function WalletForm({ defaults }: { defaults: { usdtAddress: string } }) {
+  const [state, action] = useActionState(saveWalletAction, initial);
 
   return (
     <form action={action} className="space-y-4">
       <div>
-        <label className="label" htmlFor="payoutCurrency">Payout currency</label>
-        <select id="payoutCurrency" name="payoutCurrency" defaultValue={defaults.payoutCurrency} className="field">
-          {SUPPORTED_CURRENCIES.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
-          ))}
-        </select>
+        <label className="label" htmlFor="usdtAddress">USDT wallet address (TRC20)</label>
+        <input
+          id="usdtAddress"
+          name="usdtAddress"
+          required
+          minLength={34}
+          maxLength={34}
+          defaultValue={defaults.usdtAddress}
+          placeholder="T..."
+          className="field font-mono"
+          autoComplete="off"
+          spellCheck={false}
+        />
         <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
-          Commissions are calculated in AED. Payouts in other currencies are sent at the rate applied by your bank.
-          We do not cover conversion fees, international transfer fees, or any charges applied by intermediary banks.
+          Payouts are sent only as USDT on the TRC20 (Tron) network. Double-check this
+          address — funds sent to a wrong or non-TRC20 address cannot be recovered.
         </p>
-      </div>
-      <div>
-        <label className="label" htmlFor="bankName">Bank name</label>
-        <input id="bankName" name="bankName" required minLength={2} maxLength={100} defaultValue={defaults.bankName} className="field" autoComplete="organization" />
-      </div>
-      <div>
-        <label className="label" htmlFor="bankAccountName">Account holder name</label>
-        <input id="bankAccountName" name="bankAccountName" required minLength={2} maxLength={100} defaultValue={defaults.bankAccountName} className="field" autoComplete="name" />
-      </div>
-      <div>
-        <label className="label" htmlFor="bankAccountNumber">Account number</label>
-        <input id="bankAccountNumber" name="bankAccountNumber" required maxLength={40} defaultValue={defaults.bankAccountNumber} className="field" autoComplete="off" />
-      </div>
-      <div>
-        <label className="label" htmlFor="bankIBAN">IBAN (optional)</label>
-        <input id="bankIBAN" name="bankIBAN" maxLength={40} defaultValue={defaults.bankIBAN} className="field" autoComplete="off" />
-      </div>
-      <div>
-        <label className="label" htmlFor="bankCountry">Bank country</label>
-        <input id="bankCountry" name="bankCountry" required minLength={2} maxLength={60} defaultValue={defaults.bankCountry} className="field" autoComplete="country-name" />
       </div>
 
       <FormMessage state={state} />
-      <SubmitButton>Save bank details</SubmitButton>
+      <SubmitButton>Save wallet address</SubmitButton>
     </form>
   );
 }

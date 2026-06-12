@@ -4,12 +4,12 @@ import { prisma } from "@/lib/db";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const products = await prisma.product.findMany({
     where: { active: true },
-    select: { slug: true, updatedAt: true },
+    select: { slug: true, createdAt: true },
   });
 
   const productEntries: MetadataRoute.Sitemap = products.map((p) => ({
     url: `https://shifapk.com/products/${p.slug}`,
-    lastModified: p.updatedAt,
+    lastModified: p.createdAt,
     changeFrequency: "weekly",
     priority: 0.8,
   }));
