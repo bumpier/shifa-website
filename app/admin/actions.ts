@@ -96,11 +96,17 @@ export async function setOrderStatusAction(formData: FormData): Promise<void> {
   const id = z.string().uuid().parse(formData.get("orderId"));
   const status = orderStatusSchema.parse(formData.get("status"));
 
-  await prisma.order.update({ where: { id }, data: { status } });
+  const order = await prisma.order.update({ where: { id }, data: { status } });
 
   if (status === "cancelled") {
     const { rejectReferralForOrder } = await import("@/lib/affiliate");
     await rejectReferralForOrder(id);
+  } else if (status === "shipped") {
+    const { sendOrderShippedEmail } = await import("@/lib/customer-email");
+    void sendOrderShippedEmail(order);
+  } else if (status === "delivered") {
+    const { sendOrderDeliveredEmail } = await import("@/lib/customer-email");
+    void sendOrderDeliveredEmail(order);
   }
 
   revalidatePath("/admin/orders");
