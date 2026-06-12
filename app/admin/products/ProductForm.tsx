@@ -19,6 +19,7 @@ export interface ProductFormValues {
   priceEur: string;
   stock: number;
   weightGrams: number;
+  supplyDays: number;
   active: boolean;
   currentImage: string | null;
 }
@@ -90,7 +91,7 @@ export function ProductForm({ values }: { values: ProductFormValues }) {
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <div>
           <label className="label" htmlFor="stock">Stock</label>
           <input id="stock" name="stock" type="number" min="0" required defaultValue={values.stock} className="field" />
@@ -98,6 +99,11 @@ export function ProductForm({ values }: { values: ProductFormValues }) {
         <div>
           <label className="label" htmlFor="weightGrams">Weight (grams)</label>
           <input id="weightGrams" name="weightGrams" type="number" min="0" required defaultValue={values.weightGrams} className="field" />
+        </div>
+        <div>
+          <label className="label" htmlFor="supplyDays">Supply days / unit</label>
+          <input id="supplyDays" name="supplyDays" type="number" min="0" max="3650" required defaultValue={values.supplyDays} className="field" />
+          <p className="mt-1.5 text-xs text-ink-soft/70">0 = no repurchase reminder</p>
         </div>
         <div className="flex items-end pb-3">
           <label className="flex items-center gap-2 text-sm font-medium">

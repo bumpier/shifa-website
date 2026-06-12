@@ -94,6 +94,7 @@ export const ProductSchema = z
     priceEur: priceField,
     stock: z.coerce.number().int().min(0).max(1_000_000),
     weightGrams: z.coerce.number().int().min(0).max(1_000_000),
+    supplyDays: z.coerce.number().int().min(0).max(3650),
     active: z.coerce.boolean(),
   })
   .strict();

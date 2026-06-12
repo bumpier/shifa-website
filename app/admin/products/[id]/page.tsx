@@ -49,6 +49,7 @@ export default async function EditProductPage({
             priceEur: product.priceEur.toString(),
             stock: product.stock,
             weightGrams: product.weightGrams,
+            supplyDays: product.supplyDays,
             active: product.active,
             currentImage: image,
           }}

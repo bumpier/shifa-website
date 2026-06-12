@@ -25,6 +25,7 @@ export default async function NewProductPage() {
             priceEur: "",
             stock: 0,
             weightGrams: 0,
+            supplyDays: 0,
             active: true,
             currentImage: null,
           }}

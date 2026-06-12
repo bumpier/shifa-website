@@ -152,6 +152,7 @@ export async function saveProductAction(
     priceEur: formData.get("priceEur"),
     stock: formData.get("stock"),
     weightGrams: formData.get("weightGrams"),
+    supplyDays: formData.get("supplyDays"),
     active: formData.get("active") === "on",
   });
   if (!parsed.success) {
@@ -181,6 +182,7 @@ export async function saveProductAction(
     priceEur: d.priceEur,
     stock: d.stock,
     weightGrams: d.weightGrams,
+    supplyDays: d.supplyDays,
     active: d.active,
   };
 
