@@ -1,23 +1,40 @@
-import { Resend } from "resend";
+import Mailgun from "mailgun.js";
+import FormData from "form-data";
 import { brand } from "@/config/brand";
 
-// Transactional email via Resend. Without RESEND_API_KEY (local dev),
-// links are logged to the server console instead — never in production.
+// Transactional email via Mailgun. Without MAILGUN_API_KEY (local dev),
+// emails are logged to the server console instead — never in production.
 
-const from = process.env.EMAIL_FROM ?? `${brand.name} <onboarding@resend.dev>`;
+const mailgun = new Mailgun(FormData);
+let client: ReturnType<typeof mailgun.client> | null = null;
+
+function getClient() {
+  if (!client && process.env.MAILGUN_API_KEY) {
+    client = mailgun.client({ username: "api", key: process.env.MAILGUN_API_KEY });
+  }
+  return client;
+}
+
+const from = process.env.EMAIL_FROM ?? `${brand.name} <noreply@mg.example.com>`;
 
 export async function send(to: string, subject: string, html: string) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) {
+  const apiKey = process.env.MAILGUN_API_KEY;
+  const domain = process.env.MAILGUN_DOMAIN;
+  if (!apiKey || !domain) {
     if (process.env.NODE_ENV !== "production") {
       console.log(`[dev email] to=${to} subject="${subject}"\n${html}`);
     } else {
-      console.error("[email] RESEND_API_KEY missing — email not sent");
+      console.error("[email] MAILGUN_API_KEY or MAILGUN_DOMAIN missing — email not sent");
     }
     return;
   }
-  const resend = new Resend(key);
-  await resend.emails.send({ from, to, subject, html });
+  const mg = getClient();
+  if (!mg) return;
+  try {
+    await mg.messages.create(domain, { from, to, subject, html });
+  } catch (err) {
+    console.error("[email] Mailgun send failed", err);
+  }
 }
 
 export function layout(body: string): string {

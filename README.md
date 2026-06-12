@@ -4,7 +4,7 @@ A self-contained e-commerce site for physical products with a built-in admin
 panel, an invite-only affiliate programme, and Paykassma payments (cards,
 JazzCash, Easypaisa, multi-currency: AED / PKR / USD / GBP).
 
-Stack: Next.js 15 (App Router) · SQLite via Prisma · Tailwind CSS · Jose + bcrypt · Resend.
+Stack: Next.js 15 (App Router) · SQLite via Prisma · Tailwind CSS · Jose + bcrypt · Mailgun.
 
 ## Quick start
 
@@ -68,6 +68,15 @@ Schedule the daily job on the server:
 ```cron
 15 9 * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<your-site>/api/cron/nudges
 ```
+
+## Email setup (Mailgun)
+
+Transactional emails (verification, password reset, order confirmation, shipped/delivered, nudges) go through Mailgun.
+
+1. Sign up free at [mailgun.com](https://mailgun.com) or [mailgun.eu](https://mailgun.eu)
+2. Add your domain and get your API key
+3. Set `MAILGUN_API_KEY` and `MAILGUN_DOMAIN` in `.env.local`
+4. In dev mode with no API key, emails print to the console
 
 ## Affiliate programme
 
