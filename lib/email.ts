@@ -6,7 +6,7 @@ import { brand } from "@/config/brand";
 
 const from = process.env.EMAIL_FROM ?? `${brand.name} <onboarding@resend.dev>`;
 
-async function send(to: string, subject: string, html: string) {
+export async function send(to: string, subject: string, html: string) {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     if (process.env.NODE_ENV !== "production") {
@@ -20,7 +20,7 @@ async function send(to: string, subject: string, html: string) {
   await resend.emails.send({ from, to, subject, html });
 }
 
-function layout(body: string): string {
+export function layout(body: string): string {
   return `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1b2b24">
     <h2 style="color:${brand.primaryColor}">${brand.name}</h2>
     ${body}
