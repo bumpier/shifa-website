@@ -44,7 +44,7 @@ export default async function AdminOrderDetailPage({
 
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { referrals: true },
+    include: { referrals: true, emailLogs: { orderBy: { sentAt: "asc" } } },
   });
   if (!order) notFound();
   const directReferral = order.referrals.find((r) => r.kind === "direct");
@@ -111,6 +111,30 @@ export default async function AdminOrderDetailPage({
             </dd>
           </div>
         </dl>
+
+        <div className="card mt-4 p-6 text-sm">
+          <p className="label">Emails sent</p>
+          {order.emailLogs.length === 0 ? (
+            <p className="mt-1 text-ink-soft">None yet</p>
+          ) : (
+            <ul className="mt-1 space-y-1">
+              {order.emailLogs.map((e) => (
+                <li key={e.id}>
+                  <span className="font-medium capitalize">{e.type}</span>{" "}
+                  <span className="text-ink-soft">
+                    → {e.recipient} ·{" "}
+                    {e.sentAt.toLocaleString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       {/* Packing slip — the only thing that prints */}
