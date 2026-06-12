@@ -49,7 +49,7 @@ export default async function AdminOverviewPage() {
         createdAt: { gte: thirtyDaysAgo },
         status: { in: ["paid", "packed", "shipped", "delivered"] },
       },
-      select: { createdAt: true, subtotalAed: true },
+      select: { createdAt: true, subtotalUsd: true },
     }),
     prisma.order.groupBy({ by: ["status"], _count: { id: true } }),
     prisma.order.findMany({
@@ -62,21 +62,21 @@ export default async function AdminOverviewPage() {
   ]);
 
   // ── Quick-action cards
-  const totalRevenueAed = Math.round(
-    revenueOrders.reduce((sum, o) => sum + Number(o.subtotalAed), 0)
+  const totalRevenueUsd = Math.round(
+    revenueOrders.reduce((sum, o) => sum + Number(o.subtotalUsd), 0)
   );
 
   const allOrdersAgg = await prisma.order.aggregate({
     where: { status: { in: ["paid", "packed", "shipped", "delivered"] } },
-    _sum: { subtotalAed: true },
+    _sum: { subtotalUsd: true },
   });
-  const revenueDecimal = allOrdersAgg._sum.subtotalAed ?? new Prisma.Decimal(0);
+  const revenueDecimal = allOrdersAgg._sum?.subtotalUsd ?? new Prisma.Decimal(0);
 
   const cards = [
     { label: "Awaiting fulfilment", value: String(paidOrders), href: "/admin/orders?status=paid", highlight: paidOrders > 0 },
     { label: "Shipped", value: String(shippedOrders), href: "/admin/orders?status=shipped" },
     { label: "Pending payment", value: String(pendingOrders), href: "/admin/orders?status=pending" },
-    { label: "Revenue (AED)", value: formatPrice(revenueDecimal.toString(), "AED"), href: "/admin/orders" },
+    { label: "Revenue (USD)", value: formatPrice(revenueDecimal.toString(), "USD"), href: "/admin/orders" },
     { label: "Active products", value: String(productCount), href: "/admin/products" },
     { label: "Affiliates", value: String(affiliateCount), href: "/admin/affiliates" },
     { label: "Commissions to review", value: String(pendingCommissions), href: "/admin/affiliates", highlight: pendingCommissions > 0 },
@@ -87,7 +87,7 @@ export default async function AdminOverviewPage() {
   const revenueByDate: Record<string, number> = {};
   for (const o of revenueOrders) {
     const key = o.createdAt.toISOString().split("T")[0]!;
-    revenueByDate[key] = (revenueByDate[key] ?? 0) + Number(o.subtotalAed);
+    revenueByDate[key] = (revenueByDate[key] ?? 0) + Number(o.subtotalUsd);
   }
   const dailyRevenue: DailyRevenue[] = [];
   for (let i = 29; i >= 0; i--) {
@@ -175,7 +175,7 @@ export default async function AdminOverviewPage() {
             topProducts={topProducts}
             trafficSources={trafficSources}
             paymentMethods={paymentMethods}
-            totalRevenueAed={totalRevenueAed}
+            totalRevenueUsd={totalRevenueUsd}
             totalOrders={totalOrders}
           />
         </div>

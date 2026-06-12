@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/adminAuth";
 import { tryDecrypt } from "@/lib/encrypt";
-import { formatPrice, type Currency } from "@/config/brand";
+import { formatPrice, formatUsdt, type Currency } from "@/config/brand";
 import {
   processPayoutAction,
   reviewReferralAction,
@@ -39,18 +39,12 @@ export default async function AdminAffiliateDetailPage({
   const confirmedSales = await countConfirmedSales(profile.id);
   const threshold = masterSalesThreshold();
 
-  const bank = {
-    bankName: tryDecrypt(profile.bankName),
-    accountName: tryDecrypt(profile.bankAccountName),
-    accountNumber: tryDecrypt(profile.bankAccountNumber),
-    iban: tryDecrypt(profile.bankIBAN),
-    country: tryDecrypt(profile.bankCountry),
-  };
+  const wallet = tryDecrypt(profile.usdtAddress);
 
   const stats = [
-    { label: "Total earned", value: formatPrice(profile.totalEarned.toString(), "AED") },
-    { label: "Pending balance", value: formatPrice(profile.pendingBalance.toString(), "AED") },
-    { label: "Paid out", value: formatPrice(profile.totalPaid.toString(), "AED") },
+    { label: "Total earned", value: formatUsdt(profile.totalEarned.toString()) },
+    { label: "Pending balance", value: formatUsdt(profile.pendingBalance.toString()) },
+    { label: "Paid out", value: formatUsdt(profile.totalPaid.toString()) },
     { label: "Referrals", value: String(profile.referrals.length) },
   ];
 
@@ -129,36 +123,18 @@ export default async function AdminAffiliateDetailPage({
           </form>
         </div>
 
-        {/* Bank details */}
+        {/* Payout wallet */}
         <div className="card p-6">
-          <p className="eyebrow mb-4">Bank details (decrypted for payout)</p>
-          {bank.accountNumber ? (
+          <p className="eyebrow mb-4">Payout wallet (decrypted)</p>
+          {wallet ? (
             <dl className="space-y-1.5 text-sm">
               <div className="flex justify-between gap-4">
-                <dt className="text-ink-soft">Payout currency</dt>
-                <dd className="font-medium">{profile.payoutCurrency}</dd>
+                <dt className="text-ink-soft">Network</dt>
+                <dd className="font-medium">USDT · TRC20</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-ink-soft">Bank</dt>
-                <dd className="font-medium">{bank.bankName}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-ink-soft">Account name</dt>
-                <dd className="font-medium">{bank.accountName}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-ink-soft">Account number</dt>
-                <dd className="font-mono text-xs">{bank.accountNumber}</dd>
-              </div>
-              {bank.iban && (
-                <div className="flex justify-between gap-4">
-                  <dt className="text-ink-soft">IBAN</dt>
-                  <dd className="font-mono text-xs">{bank.iban}</dd>
-                </div>
-              )}
-              <div className="flex justify-between gap-4">
-                <dt className="text-ink-soft">Country</dt>
-                <dd className="font-medium">{bank.country}</dd>
+                <dt className="text-ink-soft">Address</dt>
+                <dd className="break-all font-mono text-xs">{wallet}</dd>
               </div>
             </dl>
           ) : (
@@ -222,7 +198,7 @@ export default async function AdminAffiliateDetailPage({
                   <th className="px-5 py-3 font-semibold">Type</th>
                   <th className="px-5 py-3 font-semibold">Order</th>
                   <th className="px-5 py-3 font-semibold">Order total</th>
-                  <th className="px-5 py-3 font-semibold">Commission (AED)</th>
+                  <th className="px-5 py-3 font-semibold">Commission (USDT)</th>
                   <th className="px-5 py-3 font-semibold">Status</th>
                   <th className="px-5 py-3" />
                 </tr>
@@ -247,7 +223,7 @@ export default async function AdminAffiliateDetailPage({
                       {formatPrice(r.orderTotal.toString(), r.currency as Currency)}
                     </td>
                     <td className="px-5 py-3 font-medium">
-                      {formatPrice(r.commissionAmountAed.toString(), "AED")}
+                      {formatUsdt(r.commissionAmountUsdt.toString())}
                     </td>
                     <td className="px-5 py-3 capitalize">{r.status}</td>
                     <td className="px-5 py-3">
@@ -299,11 +275,23 @@ export default async function AdminAffiliateDetailPage({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="font-semibold">
-                      {formatPrice(p.amount.toString(), p.currency as Currency)}{" "}
+                      {formatUsdt(p.amount.toString())}{" "}
                       <span className="ml-2 rounded-full bg-brand-tint px-2.5 py-0.5 text-xs font-semibold capitalize text-brand-deep">
                         {p.status}
                       </span>
                     </p>
+                    <p className="mt-1 break-all font-mono text-xs text-ink-soft">
+                      {tryDecrypt(
+                        (JSON.parse(p.walletSnapshot) as { usdtAddress?: string | null })
+                          .usdtAddress ?? null
+                      ) ?? "no wallet snapshot"}{" "}
+                      · TRC20
+                    </p>
+                    {p.txHash && (
+                      <p className="mt-1 break-all font-mono text-xs text-ink-soft">
+                        tx: {p.txHash}
+                      </p>
+                    )}
                     <p className="mt-1 text-xs text-ink-soft">
                       Requested {p.requestedAt.toLocaleString("en-GB")}
                       {p.processedAt && ` · processed ${p.processedAt.toLocaleString("en-GB")}`}
@@ -313,6 +301,12 @@ export default async function AdminAffiliateDetailPage({
                   {(p.status === "requested" || p.status === "processing") && (
                     <form action={processPayoutAction} className="flex flex-wrap items-center gap-2">
                       <input type="hidden" name="payoutId" value={p.id} />
+                      <input
+                        name="txHash"
+                        maxLength={64}
+                        placeholder="TRC20 tx hash (for Mark paid)"
+                        className="field !w-64 !py-2 font-mono text-xs"
+                      />
                       <input
                         name="adminNote"
                         maxLength={500}

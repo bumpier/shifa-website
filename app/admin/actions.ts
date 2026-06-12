@@ -314,6 +314,11 @@ export async function processPayoutAction(formData: FormData): Promise<void> {
   const note = formData.get("adminNote");
   const adminNote =
     typeof note === "string" && note.trim() ? note.trim().slice(0, 500) : null;
+  const rawHash = formData.get("txHash");
+  const txHash =
+    typeof rawHash === "string" && /^[0-9a-fA-F]{64}$/.test(rawHash.trim())
+      ? rawHash.trim().toLowerCase()
+      : null;
 
   await prisma.$transaction(async (tx) => {
     const payout = await tx.payoutRequest.findUnique({ where: { id: payoutId } });
@@ -324,6 +329,7 @@ export async function processPayoutAction(formData: FormData): Promise<void> {
       data: {
         status: decision,
         adminNote,
+        txHash: decision === "paid" ? txHash : null,
         processedAt: decision === "processing" ? null : new Date(),
       },
     });

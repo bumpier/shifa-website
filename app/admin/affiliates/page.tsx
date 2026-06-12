@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/adminAuth";
 import { masterSalesThreshold } from "@/lib/affiliate";
-import { formatPrice } from "@/config/brand";
+import { formatUsdt } from "@/config/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -94,8 +94,8 @@ export default async function AdminAffiliatesPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-5 py-3">{formatPrice(a.pendingBalance.toString(), "AED")}</td>
-                  <td className="px-5 py-3">{formatPrice(a.totalEarned.toString(), "AED")}</td>
+                  <td className="px-5 py-3">{formatUsdt(a.pendingBalance.toString())}</td>
+                  <td className="px-5 py-3">{formatUsdt(a.totalEarned.toString())}</td>
                   <td className="px-5 py-3">
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs font-semibold ${

@@ -48,7 +48,7 @@ interface Props {
   topProducts: ProductCount[];
   trafficSources: TrafficSource[];
   paymentMethods: PaymentMethod[];
-  totalRevenueAed: number;
+  totalRevenueUsd: number;
   totalOrders: number;
 }
 
@@ -58,7 +58,7 @@ export default function AnalyticsDashboard({
   topProducts,
   trafficSources,
   paymentMethods,
-  totalRevenueAed,
+  totalRevenueUsd,
   totalOrders,
 }: Props) {
   const paidCount = statusCounts.find((s) => s.status === "paid")?.count ?? 0;
@@ -73,7 +73,7 @@ export default function AnalyticsDashboard({
             Total Revenue
           </p>
           <p className="mt-2 font-display text-3xl font-medium text-brand-deep">
-            AED {totalRevenueAed.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            $ {totalRevenueUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}
           </p>
         </div>
         <div className="card p-5">
