@@ -22,6 +22,7 @@ model Product {
   variants    String   @default("[]") // JSON array of {label,priceAed,pricePkr,priceUsd,priceGbp,priceEur}
   stock       Int      @default(0)
   weightGrams Int      @default(0)
+  supplyDays  Int      @default(0) @map("supply_days") // days one unit lasts; 0 = never nudge
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 }
@@ -45,6 +46,7 @@ model Order {
   updatedAt       DateTime @updatedAt
 
   referrals AffiliateReferral[]
+  emailLogs EmailLog[]
 }
 
 model User {
@@ -148,4 +150,20 @@ model PayoutRequest {
   adminNote    String?
   requestedAt  DateTime  @default(now())
   processedAt  DateTime?
+}
+
+model EmailLog {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  type      String   // confirmation | shipped | delivered | nudge
+  recipient String
+  sentAt    DateTime @default(now())
+
+  @@unique([orderId, type])
+}
+
+model EmailOptOut {
+  email     String   @id
+  createdAt DateTime @default(now())
 }
