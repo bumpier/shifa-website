@@ -47,8 +47,8 @@ export async function uniqueReferralCode(): Promise<string> {
 
 /**
  * Called when an order transitions to `paid` (webhook only).
- * Creates a pending commission for the referring affiliate, in AED,
- * based on the AED subtotal computed at order time.
+ * Creates a pending commission for the referring affiliate, in USDT,
+ * based on the USD subtotal computed at order time (USDT is USD-pegged).
  */
 export async function createReferralForPaidOrder(orderId: string): Promise<void> {
   const order = await prisma.order.findUnique({ where: { id: orderId } });
@@ -66,13 +66,13 @@ export async function createReferralForPaidOrder(orderId: string): Promise<void>
   if (!profile || profile.user.status !== "active") return;
 
   const rate = new Prisma.Decimal(profile.commissionRate);
-  const commissionAed = new Prisma.Decimal(order.subtotalAed).mul(rate).div(100).toDecimalPlaces(2);
+  const commissionUsdt = new Prisma.Decimal(order.subtotalUsd).mul(rate).div(100).toDecimalPlaces(2);
 
   // Master status is checked NOW: a demoted/suspended master earns no
   // override on orders paid after demotion, even from existing recruits.
   const recruiter = profile.recruiter;
   const overrideRate = new Prisma.Decimal(masterOverridePercent());
-  const overrideAed = new Prisma.Decimal(order.subtotalAed)
+  const overrideUsdt = new Prisma.Decimal(order.subtotalUsd)
     .mul(overrideRate)
     .div(100)
     .toDecimalPlaces(2);
@@ -87,8 +87,7 @@ export async function createReferralForPaidOrder(orderId: string): Promise<void>
         orderTotal: order.totalAmount,
         currency: order.currency,
         commissionRate: rate,
-        commissionAmount: commissionAed,
-        commissionAmountAed: commissionAed,
+        commissionAmountUsdt: commissionUsdt,
         status: "pending",
       },
     });
@@ -100,8 +99,7 @@ export async function createReferralForPaidOrder(orderId: string): Promise<void>
           orderTotal: order.totalAmount,
           currency: order.currency,
           commissionRate: overrideRate,
-          commissionAmount: overrideAed,
-          commissionAmountAed: overrideAed,
+          commissionAmountUsdt: overrideUsdt,
           status: "pending",
           kind: "override",
           parentReferralId: direct.id,
@@ -123,8 +121,8 @@ async function approveInTx(tx: Tx, ref: Referral): Promise<void> {
   await tx.affiliateProfile.update({
     where: { id: ref.affiliateId },
     data: {
-      totalEarned: { increment: ref.commissionAmountAed },
-      pendingBalance: { increment: ref.commissionAmountAed },
+      totalEarned: { increment: ref.commissionAmountUsdt },
+      pendingBalance: { increment: ref.commissionAmountUsdt },
     },
   });
 }
@@ -135,8 +133,8 @@ async function rejectInTx(tx: Tx, ref: Referral): Promise<void> {
     await tx.affiliateProfile.update({
       where: { id: ref.affiliateId },
       data: {
-        totalEarned: { decrement: ref.commissionAmountAed },
-        pendingBalance: { decrement: ref.commissionAmountAed },
+        totalEarned: { decrement: ref.commissionAmountUsdt },
+        pendingBalance: { decrement: ref.commissionAmountUsdt },
       },
     });
   }
