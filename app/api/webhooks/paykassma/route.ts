@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyPaykassmaSignature } from "@/lib/paykassma";
 import { createReferralForPaidOrder, rejectReferralForOrder } from "@/lib/affiliate";
+import { sendOrderConfirmationEmail } from "@/lib/customer-email";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,8 @@ export async function POST(req: Request) {
         });
         // Commission records are created ONLY here — webhook-driven
         await createReferralForPaidOrder(orderId);
+        const paidOrder = await prisma.order.findUnique({ where: { id: orderId } });
+        if (paidOrder) void sendOrderConfirmationEmail(paidOrder);
       }
     } else if (["failed", "cancelled", "refunded", "chargeback"].includes(status)) {
       if (order.status === "pending" || (order.status === "paid" && status !== "failed")) {
