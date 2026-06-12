@@ -17,7 +17,7 @@ export const CheckoutSchema = z
     country: z.string().min(2).max(100).trim(),
     postalCode: z.string().max(20).trim().optional().or(z.literal("")),
     currency: currencyEnum,
-    paymentMethod: z.enum(["card", "jazzcash", "easypaisa"]),
+    paymentMethod: z.enum(["card", "jazzcash", "easypaisa", "btc", "eth", "usdt", "xmr"]),
     items: z
       .array(
         z.object({
@@ -65,14 +65,13 @@ export const ResetPasswordSchema = z
   })
   .strict();
 
-export const BankDetailsSchema = z
+export const WalletSchema = z
   .object({
-    bankName: z.string().min(2).max(100).trim(),
-    bankAccountName: z.string().min(2).max(100).trim(),
-    bankAccountNumber: z.string().regex(/^[A-Za-z0-9\s\-]{4,40}$/),
-    bankIBAN: z.string().regex(/^[A-Za-z0-9\s]{0,40}$/).optional().or(z.literal("")),
-    bankCountry: z.string().min(2).max(60).trim(),
-    payoutCurrency: z.enum(["AED", "PKR", "USD", "GBP", "EUR"]),
+    // TRC20 (Tron) address: "T" + 33 base58 chars
+    usdtAddress: z
+      .string()
+      .trim()
+      .regex(/^T[1-9A-HJ-NP-Za-km-z]{33}$/, "Enter a valid USDT (TRC20) address"),
   })
   .strict();
 

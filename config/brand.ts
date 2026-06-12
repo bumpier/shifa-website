@@ -73,3 +73,13 @@ export function formatPrice(amount: number | string, currency: Currency): string
   });
   return `${CURRENCY_SYMBOLS[currency]} ${formatted}`;
 }
+
+/** Affiliate amounts are tracked and paid in USDT (TRC20). */
+export function formatUsdt(amount: number | string): string {
+  const n = typeof amount === "string" ? parseFloat(amount) : amount;
+  const formatted = n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${formatted} USDT`;
+}
