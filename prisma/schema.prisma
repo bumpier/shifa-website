@@ -38,8 +38,8 @@ model Order {
   currency        String
   totalAmount     Decimal
   subtotalUsd     Decimal  @default(0) // commission basis (USD ≈ USDT), computed at order time
-  paykassmaRef    String?
-  paymentMethod   String // card | jazzcash | easypaisa
+  paymentRef      String? // crypto payment gateway (NOWPayments) invoice/payment id
+  paymentMethod   String // btc | eth | usdt | xmr
   refCode         String? // affiliate referral code captured from cookie
   notes           String?
   createdAt       DateTime @default(now())

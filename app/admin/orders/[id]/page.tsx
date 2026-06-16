@@ -91,7 +91,7 @@ export default async function AdminOrderDetailPage({
           </div>
           <div>
             <dt className="label">Gateway ref</dt>
-            <dd className="font-mono text-xs">{order.paykassmaRef ?? "—"}</dd>
+            <dd className="font-mono text-xs">{order.paymentRef ?? "—"}</dd>
           </div>
           <div>
             <dt className="label">Referral</dt>

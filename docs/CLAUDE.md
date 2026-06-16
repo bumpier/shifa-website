@@ -1,7 +1,7 @@
 # CLAUDE.md — Shifa E-Commerce Project
 
 ## Project Overview
-**Shifa** is a simple, trustworthy-looking e-commerce website for selling physical shipped products. It must be easy to white-label (logo, colours, branding swappable with minimal effort). The site includes a self-contained CMS/database for managing orders and printing packing slips, and uses Paykassma as the payment provider — covering Pakistani wallets (JazzCash, Easypaisa), international cards (Visa/Mastercard), and multi-currency in a single integration.
+**Shifa** is a simple, trustworthy-looking e-commerce website for selling physical shipped products. It must be easy to white-label (logo, colours, branding swappable with minimal effort). The site includes a self-contained CMS/database for managing orders and printing packing slips, and uses NOWPayments as the payment provider — crypto only (Bitcoin, Ethereum, USDT, Monero), with an automatic 10% discount on every order.
 
 ---
 
@@ -10,8 +10,8 @@
 - Easy white-labelling: swap logo, brand name, colours in one config file
 - Self-contained: no external CMS dependency — all data stored locally (SQLite)
 - Order management dashboard: view orders, print packing slips
-- Paykassma payment integration — single provider covering JazzCash, Easypaisa, Visa/Mastercard, AED/PKR/USD/GBP
-- Multi-currency support: AED, PKR, USD, GBP
+- NOWPayments crypto payment integration — Bitcoin, Ethereum, USDT, Monero, with a 10% discount on every order
+- Multi-currency product pricing: AED, PKR, USD, GBP (crypto invoices are settled in USD)
 - Small catalogue to start: 1–10 physical products
 - Invite-only affiliate programme with unique referral links, commission tracking, and affiliate dashboards
 - Customer accounts (register/login) so affiliates can log in and track their earnings
@@ -27,7 +27,7 @@
 | Admin/CMS | **Custom admin panel** (built-in) | No third-party CMS dependency |
 | Auth | **Jose + bcrypt** | Lightweight JWT, no NextAuth overhead |
 | Email | **Postal** (self-hosted) | Transactional email via our own Postal server HTTP API |
-| Payments | **Paykassma** | Single API: JazzCash, Easypaisa, Visa/MC, multi-currency, high-risk friendly |
+| Payments | **NOWPayments** | Crypto only: BTC, ETH, USDT, XMR; hosted invoice + signed IPN webhook |
 | Styling | **Tailwind CSS** | Easy to theme via config |
 | Deployment | **Vercel** (free tier) | Zero-config, works with Next.js perfectly |
 
@@ -67,7 +67,7 @@ To white-label for a new client: update `config/brand.ts` + replace `/public/log
 | `/products` | Product listing page |
 | `/products/[slug]` | Single product page |
 | `/cart` | Cart (local state, no login needed) |
-| `/checkout` | Checkout form — card, JazzCash, or Easypaisa via Paykassma |
+| `/checkout` | Checkout form — pay with BTC, ETH, USDT, or XMR via NOWPayments |
 | `/order-confirmation/[id]` | Thank you page with order summary |
 | `/admin` | Password-protected admin dashboard |
 | `/admin/orders` | All orders table |
@@ -96,7 +96,7 @@ images[], stock, weight_grams, active, createdAt
 id, status (pending/paid/shipped/delivered/cancelled),
 customerName, customerEmail, customerPhone,
 shippingAddress (JSON), items (JSON), currency, totalAmount,
-paykassmaRef, paymentMethod (card/jazzcash/easypaisa), notes, createdAt, updatedAt
+paymentRef, paymentMethod (btc/eth/usdt/xmr), notes, createdAt, updatedAt
 ```
 
 ### User (Affiliate Account)
@@ -138,47 +138,44 @@ adminNote, requestedAt, processedAt
 
 ---
 
-## Payment Flow (Paykassma)
+## Payment Flow (NOWPayments — crypto only)
 
-Paykassma is a single API covering all required payment methods:
-- **JazzCash** — Pakistan's most-used mobile wallet
-- **Easypaisa** — Pakistan's second major wallet
-- **Visa / Mastercard** — international cards, supports AED/USD/GBP
-- **PKR cards & bank transfers** — local Pakistani bank cards
+Payment is crypto only. Supported coins, each with a 10% discount:
+- **Bitcoin (BTC)**
+- **Ethereum (ETH)**
+- **USDT** — dollar-pegged stablecoin
+- **Monero (XMR)** — private transactions
 
 ### Checkout Flow
-1. Customer fills checkout form and selects payment method (card / JazzCash / Easypaisa)
+1. Customer fills checkout form and selects a crypto method (BTC / ETH / USDT / XMR)
 2. App validates input with Zod server-side
-3. App creates a `pending` Order in SQLite with a UUID order ID
-4. App calls Paykassma Create Payment API → receives a hosted payment URL
-5. Customer is redirected to Paykassma's hosted page to complete payment
-6. On success: Paykassma sends signed webhook to `/api/webhooks/paykassma`
-7. Webhook handler verifies signature, updates order status to `paid`
+3. App creates a `pending` Order in SQLite with a UUID order ID (10% discount, settled in USD)
+4. App calls the NOWPayments Create Invoice API → receives a hosted payment URL
+5. Customer is redirected to NOWPayments' hosted page to send crypto
+6. On payment: NOWPayments sends a signed IPN webhook to `/api/webhooks/nowpayments`
+7. Webhook handler verifies signature, marks the order `paid`, decrements stock and creates the affiliate commission
 8. Customer lands on `/order-confirmation/[id]`
 
 ### Payment Method Selection UI
-At checkout, show three clear options with logos:
-- 💳 Card (Visa / Mastercard)
-- 🟠 JazzCash
-- 🟢 Easypaisa
+At checkout, show the crypto options with their badges, each flagged with the −10% discount:
+- ₿ Bitcoin
+- Ξ Ethereum
+- 💵 USDT
+- 🔐 Monero (private)
 
-Currency is automatically set based on payment method:
-- JazzCash / Easypaisa → PKR
-- Card → customer's selected currency (AED / USD / GBP / PKR)
+All crypto invoices are charged in USD (the order's USD subtotal, with the 10% discount applied).
 
-### Paykassma Integration Notes
-- Paykassma docs are not publicly available — obtain API keys and full documentation directly from Paykassma after merchant approval
-- Integration follows standard hosted-redirect pattern (same as Stripe)
-- Implement webhook signature verification using the method specified in Paykassma's docs
-- Build `lib/paykassma.ts` as the single integration file — all API calls go through here
-- Use sandbox/test credentials during development; never use live keys in dev
+### NOWPayments Integration Notes
+- Obtain `NOWPAYMENTS_API_KEY` and `NOWPAYMENTS_IPN_SECRET` from https://nowpayments.io/
+- Integration follows the standard hosted-invoice + IPN pattern
+- IPN webhook signature is HMAC-SHA512 of the raw body, sent in the `X-NOWPAYMENTS-SIG` header
+- Build `lib/nowpayments.ts` as the single integration file — all API calls go through here
+- With no API key in dev, checkout falls back to the local `/dev/nowpayments` simulator
 
 **Environment variables in `.env.local`:**
 ```
-PAYKASSMA_API_KEY=
-PAYKASSMA_MERCHANT_ID=
-PAYKASSMA_SECRET_KEY=              # for webhook signature verification
-PAYKASSMA_ENV=sandbox              # switch to "production" for go-live
+NOWPAYMENTS_API_KEY=              # leave empty in dev to use the local simulator
+NOWPAYMENTS_IPN_SECRET=          # for IPN webhook signature verification (HMAC-SHA512)
 JWT_SECRET=                        # min 32 random chars
 ADMIN_PASSWORD=                    # hashed with bcrypt on first run
 AFFILIATE_DEFAULT_COMMISSION=10    # percent
@@ -294,7 +291,7 @@ Use a simple lookup table — prices are stored per currency in the Product tabl
 ### Referral Tracking
 - Referral code stored in a cookie: `ref_code`, `sameSite=lax`, `maxAge=2592000` (30 days)
 - Last-click attribution — if customer clicks a new affiliate link, the cookie is overwritten
-- Commission only created when order status changes to `paid` (via Paykassma webhook)
+- Commission only created when order status changes to `paid` (via the NOWPayments webhook)
 - Commission amount tracked in USDT, calculated from the order's USD subtotal at
   time of order (USDT is dollar-pegged; original order currency kept for audit)
 
@@ -332,7 +329,7 @@ This section is mandatory. Every rule below must be implemented. No exceptions.
 ---
 
 ### 1. Environment & Secrets
-- All secrets (Paykassma keys, admin password, JWT secret) live **only** in `.env.local` — never in code, never in `config/brand.ts`, never committed to git
+- All secrets (NOWPayments keys, admin password, JWT secret) live **only** in `.env.local` — never in code, never in `config/brand.ts`, never committed to git
 - `.env.local` must be in `.gitignore` from day one
 - Add a `.env.example` file with blank placeholders so developers know what vars are needed without exposing real values
 - Never log secrets, tokens, or full request bodies to console in production
@@ -402,16 +399,15 @@ const order = await prisma.$queryRawUnsafe(`SELECT * FROM Order WHERE id = '${or
 
 ### 5. API Routes — Server-Side Protection
 - All `/api/*` routes that mutate data (create order, update status, add product) must verify the request origin using the `Origin` header or a **CSRF token**
-- Paykassma webhook endpoint (`/api/webhooks/paykassma`) must verify the **Paykassma signature** on every incoming request — reject anything that fails verification. Use the exact method specified in Paykassma's documentation (typically HMAC-SHA256)
+- NOWPayments webhook endpoint (`/api/webhooks/nowpayments`) must verify the **IPN signature** on every incoming request — reject anything that fails verification. The signature is HMAC-SHA512 of the raw body in the `X-NOWPAYMENTS-SIG` header
 - Never expose order details at a guessable URL — use **UUIDs** (not sequential integers) for order IDs
 - Rate-limit all public API endpoints: checkout max 10 requests/min per IP, product listing max 60/min
 
 ```ts
-// lib/paykassma.ts — always verify webhook signature
-// Note: confirm exact signing method with Paykassma's documentation
-export function verifyPaykassmaSignature(payload: string, signature: string): boolean {
+// lib/nowpayments.ts — always verify the IPN webhook signature
+export function verifyNowpaymentsSignature(payload: string, signature: string): boolean {
   const expected = crypto
-    .createHmac('sha256', process.env.PAYKASSMA_SECRET_KEY!)
+    .createHmac('sha512', process.env.NOWPAYMENTS_IPN_SECRET!)
     .update(payload)
     .digest('hex');
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
@@ -439,10 +435,10 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
       "font-src 'self' fonts.gstatic.com",
       "img-src 'self' data: blob:",
-      "connect-src 'self' https://paykassma.com",
-      "frame-src https://paykassma.com",
-      "form-action 'self' https://paykassma.com",
-      // Update these URLs with the exact Paykassma domain once confirmed from their docs
+      // Crypto checkout is a top-level redirect to the NOWPayments hosted page,
+      // so no extra connect/frame hosts are required.
+      "connect-src 'self'",
+      "form-action 'self'",
     ].join('; ')
   },
   {
@@ -458,8 +454,8 @@ const securityHeaders = [
 - Pin all dependencies to exact versions in `package.json` (no `^` or `~`)
 - Run `npm audit` before every deploy — fix all critical and high severity issues before going live
 - Do not install packages with fewer than 10,000 weekly downloads unless absolutely necessary
-- Use only the official Paykassma REST API as documented in their merchant documentation — no unofficial wrappers
-- Do not use any community-built Paykassma packages; write `lib/paykassma.ts` from scratch against their documented API
+- Use only the official NOWPayments REST API as documented — no unofficial wrappers
+- Do not use any community-built NOWPayments packages; write `lib/nowpayments.ts` from scratch against their documented API
 
 ---
 
@@ -485,7 +481,7 @@ const safeName = path.basename(filename); // strips any ../ attempts
 
 ### 10. Data Minimisation (GDPR / Privacy)
 - Only collect what is needed to fulfil the order: name, email, phone, shipping address
-- Do not store payment card details — ever. Paykassma handles all card and wallet data on their PCI-DSS certified servers
+- Do not store payment details — ever. Payment is crypto only; NOWPayments handles the entire payment on their own servers and the customer is redirected there to pay
 - Add a clear privacy policy page listing what data is stored and why
 - Provide a contact email for data deletion requests
 
@@ -512,7 +508,7 @@ Before going live, verify every item:
 - [ ] `.env.local` is in `.gitignore` and NOT in the repo
 - [ ] Admin password is bcrypt-hashed, min 12 chars
 - [ ] All `/admin/*` routes blocked server-side without valid session cookie
-- [ ] Paykassma webhook verifies signature before processing (method confirmed from Paykassma docs)
+- [ ] NOWPayments IPN webhook verifies the HMAC-SHA512 signature before processing
 - [ ] All form inputs validated with Zod on the server
 - [ ] SQLite file is NOT in `/public`
 - [ ] Security headers returning correctly (check via [securityheaders.com](https://securityheaders.com))
@@ -525,7 +521,7 @@ Before going live, verify every item:
 - [ ] Affiliate invite tokens are single-use and expire after 48 hours
 - [ ] Affiliates can only access their own dashboard data (server-side check on every request)
 - [ ] Bank details are encrypted at rest with AES-256-GCM
-- [ ] Commission records are created only via Paykassma webhook (not client-triggered)
+- [ ] Commission records are created only via the NOWPayments webhook (not client-triggered)
 - [ ] Email verification required before affiliate dashboard is accessible
 
 ---
@@ -538,7 +534,7 @@ When starting this project, Claude should:
 3. Create `config/brand.ts` as the single source of truth for branding
 4. Add security headers to `next.config.js` immediately — before any other work
 5. Build storefront pages first (homepage → product page → cart → checkout)
-6. Wire up Paykassma using `lib/paykassma.ts` — implement Create Payment, webhook handler, and signature verification. Reference Paykassma's merchant documentation for exact API endpoints and signing method
+6. Wire up NOWPayments using `lib/nowpayments.ts` — implement Create Invoice, the IPN webhook handler, and HMAC-SHA512 signature verification. Reference the NOWPayments API docs for exact endpoints
 7. Build auth system (register/login/forgot-password) using Jose + bcrypt
 8. Build affiliate invite flow — admin generates token, affiliate registers via token
 9. Build affiliate dashboard — referral link, earnings table, payout request

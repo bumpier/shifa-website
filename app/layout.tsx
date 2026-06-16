@@ -12,13 +12,13 @@ export const metadata: Metadata = {
     template: `%s | ${brand.name}`,
   },
   description:
-    "ShifaPK offers premium natural wellness products shipped to UAE, Pakistan & worldwide. Pay by card, JazzCash or Easypaisa.",
+    "ShifaPK offers premium natural wellness products shipped to UAE, Pakistan & worldwide. Pay with crypto and get 10% off.",
   openGraph: {
     type: "website",
     siteName: brand.name,
     title: `${brand.name} | ${brand.tagline}`,
     description:
-      "ShifaPK offers premium natural wellness products shipped to UAE, Pakistan & worldwide. Pay by card, JazzCash or Easypaisa.",
+      "ShifaPK offers premium natural wellness products shipped to UAE, Pakistan & worldwide. Pay with crypto and get 10% off.",
     images: [{ url: "/logo.png", width: 800, height: 600, alt: brand.name }],
   },
   twitter: {

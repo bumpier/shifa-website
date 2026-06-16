@@ -23,9 +23,9 @@ export default function PrivacyPage() {
         <section>
           <h2 className="mb-2 font-semibold text-ink">Payment details</h2>
           <p>
-            We never see or store your card or wallet details. All payments are processed
-            by our payment provider (Paykassma) on their PCI-DSS certified
-            infrastructure.
+            We never see or store your payment details. All payments are made in
+            cryptocurrency and processed by our payment provider (NOWPayments) on
+            their own infrastructure.
           </p>
         </section>
 

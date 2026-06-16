@@ -1,8 +1,8 @@
 # Shifa — white-label e-commerce storefront
 
 A self-contained e-commerce site for physical products with a built-in admin
-panel, an invite-only affiliate programme, and Paykassma payments (cards,
-JazzCash, Easypaisa, multi-currency: AED / PKR / USD / GBP).
+panel, an invite-only affiliate programme, and crypto payments via NOWPayments
+(Bitcoin, Ethereum, USDT, Monero — 10% discount on every order).
 
 Stack: Next.js 15 (App Router) · SQLite via Prisma · Tailwind CSS · Jose + bcrypt · Postal (self-hosted email).
 
@@ -40,19 +40,22 @@ palette (tints, shades, ink, paper) is derived automatically from
 Fonts are the one exception (`next/font` needs literal names): swap the two
 imports in `app/fonts.ts`.
 
-## Payments (Paykassma)
+## Payments (NOWPayments — crypto only)
 
-`lib/paykassma.ts` is the single integration point. Endpoint paths, payload
-field names and the webhook signing method follow the standard
-hosted-redirect pattern but **must be confirmed against the merchant
-documentation Paykassma provides after approval** — set `PAYKASSMA_API_URL`
-and credentials in `.env.local`.
+Payment is crypto-only: Bitcoin, Ethereum, USDT and Monero, each with an
+automatic 10% discount. `lib/nowpayments.ts` is the single integration point —
+it creates a hosted invoice and the customer is redirected to NOWPayments to
+pay. Set `NOWPAYMENTS_API_KEY` and `NOWPAYMENTS_IPN_SECRET` in `.env.local`.
 
-**Dev simulator:** with `PAYKASSMA_ENV=sandbox` and no `PAYKASSMA_API_KEY`,
-checkout redirects to `/dev/paykassma`, a local stand-in for the hosted
-payment page that fires correctly signed webhooks at the real endpoint, so
-the whole flow (checkout → webhook → paid order → commission) works locally.
-It returns 404 whenever an API key is configured or `PAYKASSMA_ENV=production`.
+Payments are confirmed by a signed IPN webhook at `/api/webhooks/nowpayments`
+(HMAC-SHA512), which marks the order paid, decrements stock and creates the
+affiliate commission — never client-side.
+
+**Dev simulator:** with no `NOWPAYMENTS_API_KEY`, checkout redirects to
+`/dev/nowpayments`, a local stand-in for the hosted payment page that fires
+correctly signed webhooks at the real endpoint, so the whole flow
+(checkout → webhook → paid order → commission) works locally. It returns 404
+whenever an API key is configured.
 
 ## Repurchase nudge emails
 
@@ -97,7 +100,7 @@ Transactional emails (verification, password reset, order confirmation, shipped/
 |---|---|
 | `config/brand.ts` | All branding (white-label) |
 | `prisma/schema.prisma` | Database schema |
-| `lib/paykassma.ts` | Payment gateway integration |
+| `lib/nowpayments.ts` | Crypto payment gateway integration |
 | `lib/affiliate.ts` | Commission lifecycle |
 | `app/admin/*` | Admin panel |
 | `data/shifa.db` | SQLite database (never web-accessible) |

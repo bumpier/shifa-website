@@ -28,7 +28,7 @@ export const brand = {
   trust: {
     shippingLine: "Every order packed and shipped by us, worldwide.",
     qualityLine: "NovaCert Certificate of Analysis on every product, purity verified at ≥99.9%.",
-    secureLine: "All payments processed through PCI-DSS certified infrastructure.",
+    secureLine: "Crypto payments processed securely via NOWPayments.",
   },
   // AED-to-X multipliers used to display affiliate balances in their chosen
   // payout currency. Update these whenever rates drift materially.

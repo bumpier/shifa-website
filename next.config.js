@@ -16,10 +16,10 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
       "font-src 'self' fonts.gstatic.com",
       "img-src 'self' data: blob:",
-      // Update these URLs with the exact Paykassma domain once confirmed from their docs
-      "connect-src 'self' https://paykassma.com",
-      "frame-src https://paykassma.com",
-      "form-action 'self' https://paykassma.com",
+      // Crypto checkout redirects the browser (top-level navigation) to the
+      // NOWPayments hosted page, so no extra connect/frame hosts are needed.
+      "connect-src 'self'",
+      "form-action 'self'",
     ].join('; '),
   },
   {

@@ -4,15 +4,11 @@ import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCart } from "@/components/CartProvider";
-import { useCurrency } from "@/components/CurrencyProvider";
 import { brand, formatPrice, type Currency } from "@/config/brand";
 
-type Method = "card" | "jazzcash" | "easypaisa" | "btc" | "eth" | "usdt" | "xmr";
+type Method = "btc" | "eth" | "usdt" | "xmr";
 
 const METHODS: { id: Method; label: string; hint: string; badge: string; discount?: boolean }[] = [
-  { id: "card", label: "Card", hint: "Visa / Mastercard, AED, USD, GBP or PKR", badge: "💳" },
-  { id: "jazzcash", label: "JazzCash", hint: "Pakistani mobile wallet, paid in PKR", badge: "🟠" },
-  { id: "easypaisa", label: "Easypaisa", hint: "Pakistani mobile wallet, paid in PKR", badge: "🟢" },
   { id: "btc", label: "Bitcoin", hint: "BTC with 10% discount", badge: "₿", discount: true },
   { id: "eth", label: "Ethereum", hint: "ETH with 10% discount", badge: "Ξ", discount: true },
   { id: "usdt", label: "USDT", hint: "Tether stablecoin with 10% discount", badge: "💵", discount: true },
@@ -30,25 +26,20 @@ export default function CheckoutPage() {
 
 function CheckoutForm() {
   const { items, hydrated, clear } = useCart();
-  const { currency } = useCurrency();
   const searchParams = useSearchParams();
   const cancelled = searchParams.get("cancelled") === "1";
 
-  const [method, setMethod] = useState<Method>("card");
+  const [method, setMethod] = useState<Method>("btc");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isCrypto = ["btc", "eth", "usdt", "xmr"].includes(method);
-
-  // For crypto, always show USD; for wallets, use PKR; for cards, use selected currency
-  const chargeCurrency: Currency = isCrypto ? "USD" : method === "card" ? currency : "PKR";
+  // All payments are crypto: always charged in USD with a 10% discount
+  const chargeCurrency: Currency = "USD";
   const total = items.reduce(
     (sum, i) => sum + parseFloat(i.prices[chargeCurrency] ?? "0") * i.qty,
     0
   );
-
-  // Apply 10% discount for crypto
-  const discountedTotal = isCrypto ? total * 0.9 : total;
+  const discountedTotal = total * 0.9;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -218,32 +209,24 @@ function CheckoutForm() {
             ))}
           </ul>
 
-          {isCrypto && (
-            <div className="mt-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
-              <span className="font-semibold">10% crypto discount applied!</span>
-            </div>
-          )}
+          <div className="mt-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+            <span className="font-semibold">10% crypto discount applied!</span>
+          </div>
 
           <div className="mt-5 flex flex-col gap-2 border-t border-line pt-4">
-            {isCrypto && total !== discountedTotal && (
+            {total !== discountedTotal && (
               <div className="flex justify-between text-sm">
                 <span className="text-ink-soft">Subtotal</span>
                 <span className="text-ink-soft">{formatPrice(total, chargeCurrency)}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="font-semibold text-ink">{isCrypto ? "Total after discount" : "Total"}</span>
+              <span className="font-semibold text-ink">Total after discount</span>
               <span className="font-semibold text-brand-deep">
                 {formatPrice(discountedTotal, chargeCurrency)}
               </span>
             </div>
           </div>
-
-          {!isCrypto && method !== "card" && currency !== "PKR" && (
-            <p className="mt-3 text-xs text-ink-soft">
-              {METHODS.find((m) => m.id === method)?.label} payments settle in PKR.
-            </p>
-          )}
 
           {error && (
             <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>

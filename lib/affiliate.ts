@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 // Referral tracking + commission lifecycle. Commissions are created
-// ONLY from the Paykassma webhook (order → paid), never client-side.
+// ONLY from the NOWPayments webhook (order → paid), never client-side.
 //
 // Pyramid: each direct commission may carry one "override" sibling row —
 // the recruiting master's cut, paid by the house on top of the recruit's

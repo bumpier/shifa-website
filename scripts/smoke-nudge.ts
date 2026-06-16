@@ -44,7 +44,7 @@ async function makeOrder(email: string, productId: string, createdAt: Date, stat
       currency: "AED",
       totalAmount: 10,
       subtotalUsd: 10,
-      paymentMethod: "card",
+      paymentMethod: "usdt",
       createdAt,
     },
   });

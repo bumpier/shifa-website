@@ -4,7 +4,6 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { CheckoutSchema, verifyOrigin } from "@/lib/validation";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
-import { createPayment } from "@/lib/paykassma";
 import { createCryptoPayment, type CryptoPaymentMethod } from "@/lib/nowpayments";
 import { priceFor, priceForVariant } from "@/lib/catalog";
 
@@ -27,13 +26,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid order details" }, { status: 400 });
     }
     const input = parsed.data;
-
-    const isCrypto = ["btc", "eth", "usdt"].includes(input.paymentMethod);
-
-    // Wallets (non-card, non-crypto) settle in PKR only
-    if (!isCrypto && input.paymentMethod !== "card" && input.currency !== "PKR") {
-      return NextResponse.json({ error: "Invalid order details" }, { status: 400 });
-    }
 
     // Server-side pricing — never trust client amounts
     const ids = input.items.map((i) => i.productId);
@@ -82,12 +74,10 @@ export async function POST(req: Request) {
       };
     });
 
-    // Apply 10% crypto discount
-    if (isCrypto) {
-      const discount = total.mul(0.1); // 10% off
-      total = total.sub(discount);
-      subtotalUsd = subtotalUsd.mul(0.9); // also apply to USD basis
-    }
+    // All payments are crypto — apply the 10% crypto discount
+    const discount = total.mul(0.1); // 10% off
+    total = total.sub(discount);
+    subtotalUsd = subtotalUsd.mul(0.9); // also apply to USD basis
 
     const refCode = (await cookies()).get("ref_code")?.value ?? null;
 
@@ -113,49 +103,23 @@ export async function POST(req: Request) {
       },
     });
 
-    let paymentRef: string;
-    let paymentUrl: string;
+    const cryptoPayment = await createCryptoPayment({
+      orderId: order.id,
+      amount: subtotalUsd.toFixed(2), // USD total, 10% crypto discount already applied
+      method: input.paymentMethod as CryptoPaymentMethod,
+      customerName: input.name,
+      customerEmail: input.email,
+    });
 
-    if (isCrypto) {
-      const cryptoPayment = await createCryptoPayment({
-        orderId: order.id,
-        amount: subtotalUsd.toFixed(2), // USD total, 10% crypto discount already applied
-        method: input.paymentMethod as CryptoPaymentMethod,
-        customerName: input.name,
-        customerEmail: input.email,
-      });
+    await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        paymentRef: cryptoPayment.paymentRef,
+        notes: `Crypto payment (${input.paymentMethod.toUpperCase()}) - 10% discount applied`,
+      },
+    });
 
-      paymentRef = cryptoPayment.paymentRef;
-      paymentUrl = cryptoPayment.paymentUrl;
-
-      await prisma.order.update({
-        where: { id: order.id },
-        data: {
-          paykassmaRef: cryptoPayment.paymentRef,
-          notes: `Crypto payment (${input.paymentMethod.toUpperCase()}) - 10% discount applied`,
-        },
-      });
-    } else {
-      const payment = await createPayment({
-        orderId: order.id,
-        amount: total.toFixed(2),
-        currency: input.currency,
-        method: input.paymentMethod as any,
-        customerName: input.name,
-        customerEmail: input.email,
-        customerPhone: input.phone,
-      });
-
-      paymentRef = payment.paymentRef;
-      paymentUrl = payment.paymentUrl;
-
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { paykassmaRef: payment.paymentRef },
-      });
-    }
-
-    return NextResponse.json({ paymentUrl, orderId: order.id });
+    return NextResponse.json({ paymentUrl: cryptoPayment.paymentUrl, orderId: order.id });
   } catch (err) {
     const code = (err as { code?: string }).code;
     if (code === "OUT_OF_STOCK") {

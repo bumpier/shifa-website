@@ -17,7 +17,7 @@ export const CheckoutSchema = z
     country: z.string().min(2).max(100).trim(),
     postalCode: z.string().max(20).trim().optional().or(z.literal("")),
     currency: currencyEnum,
-    paymentMethod: z.enum(["card", "jazzcash", "easypaisa", "btc", "eth", "usdt", "xmr"]),
+    paymentMethod: z.enum(["btc", "eth", "usdt", "xmr"]),
     items: z
       .array(
         z.object({

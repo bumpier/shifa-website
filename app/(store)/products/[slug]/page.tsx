@@ -23,7 +23,7 @@ export async function generateMetadata({
   const images = parseImages(product);
   const description = product.description
     ? product.description.replace(/[#*_`>\[\]]/g, "").slice(0, 155).trim() + "…"
-    : `${product.name}. NovaCert-certified at ≥99.9% purity. Tracked delivery to UAE, Pakistan & worldwide. Pay by card, JazzCash or Easypaisa.`;
+    : `${product.name}. NovaCert-certified at ≥99.9% purity. Tracked delivery to UAE, Pakistan & worldwide. Pay with crypto and get 10% off.`;
 
   return {
     title: product.name,
@@ -84,7 +84,7 @@ export default async function ProductPage({
         name: `What payment methods can I use to buy ${product.name}?`,
         acceptedAnswer: {
           "@type": "Answer",
-          text: "ShifaPK accepts card payments, JazzCash, and Easypaisa, all processed securely through PCI-DSS certified infrastructure.",
+          text: "ShifaPK accepts cryptocurrency payments — Bitcoin, Ethereum, USDT, and Monero — processed securely through NOWPayments, with a 10% discount on every crypto order.",
         },
       },
     ],

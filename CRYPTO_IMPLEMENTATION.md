@@ -28,8 +28,7 @@
 ### 3. **Files Modified**
 
 #### Validation & Type Safety
-- `lib/validation.ts` - Added "btc", "eth", "usdt", "xmr" to CheckoutSchema
-- `lib/paykassma.ts` - Updated PaymentMethod type to include crypto methods
+- `lib/validation.ts` - `CheckoutSchema` accepts only "btc", "eth", "usdt", "xmr"
 
 #### Checkout Flow
 - `app/api/checkout/route.ts` - Added crypto payment handling with USD conversion and 10% discount logic
@@ -145,7 +144,7 @@ NOWPAYMENTS_IPN_SECRET=your_secret_here
 
 No schema changes required. Uses existing fields:
 - `Order.paymentMethod` - Stores "btc", "eth", "usdt", or "xmr"
-- `Order.paykassmaRef` - Stores NOWPayments invoice ID (reused for crypto)
+- `Order.paymentRef` - Stores the NOWPayments invoice/payment ID
 - `Order.notes` - Stores crypto payment metadata
 - `Order.totalAmount` - Stores discounted amount
 - `Order.currency` - Stores original user currency
@@ -206,23 +205,20 @@ Perfect for:
 
 ```
 lib/
-├── nowpayments.ts                ← Crypto payment handler
-└── paykassma.ts                   ← (updated: added crypto types)
+└── nowpayments.ts                ← Crypto payment handler (sole payment integration)
 
 app/
 ├── api/
-│   ├── checkout/route.ts          ← (updated: crypto handling)
+│   ├── checkout/route.ts          ← Crypto-only checkout
 │   └── webhooks/
-│       ├── nowpayments/           ← NEW: Webhook handler
-│       │   └── route.ts
-│       └── paykassma/             ← (unchanged)
+│       └── nowpayments/           ← Webhook handler (marks paid, stock, commission)
+│           └── route.ts
 │
 ├── (store)/
-│   ├── checkout/page.tsx          ← (updated: new UI)
+│   ├── checkout/page.tsx          ← Crypto-only payment UI
 │   └── dev/
-│       ├── nowpayments/           ← NEW: Dev simulator
-│       │   └── page.tsx
-│       └── paykassma/             ← (unchanged)
+│       └── nowpayments/           ← Dev simulator
+│           └── page.tsx
 
 config/
 └── brand.ts                        ← (unchanged)
