@@ -1,10 +1,10 @@
-# ShifaPK
+# Shifa Asia
 
-> ShifaPK is a natural wellness e-commerce store shipping premium wellness products to UAE, Pakistan, and worldwide.
+> Shifa Asia is a natural wellness e-commerce store shipping premium wellness products to UAE, Pakistan, and worldwide.
 
 ## About
 
-ShifaPK offers a carefully curated range of natural wellness essentials — each product is personally selected, stocked, and shipped directly by the ShifaPK team. We are a small, customer-first team that replies personally to every enquiry.
+Shifa Asia offers a carefully curated range of natural wellness essentials — each product is personally selected, stocked, and shipped directly by the Shifa Asia team. We are a small, customer-first team that replies personally to every enquiry.
 
 ## What We Sell
 
@@ -24,7 +24,7 @@ Card, JazzCash, Easypaisa — all processed securely via Paykassma (PCI-DSS cert
 
 ## Shipping
 
-Tracked shipping across UAE, Pakistan & worldwide. Every order is packed and shipped directly by ShifaPK.
+Tracked shipping across UAE, Pakistan & worldwide. Every order is packed and shipped directly by Shifa Asia.
 
 ## Trust & Quality
 
@@ -40,7 +40,7 @@ Phone: +971 XX XXX XXXX
 
 ## Key Pages
 
-- Homepage: https://shifapk.com
-- Full product catalogue: https://shifapk.com/products
-- Privacy policy: https://shifapk.com/privacy
-- Sitemap: https://shifapk.com/sitemap.xml
+- Homepage: https://shifalabsasia.com
+- Full product catalogue: https://shifalabsasia.com/products
+- Privacy policy: https://shifalabsasia.com/privacy
+- Sitemap: https://shifalabsasia.com/sitemap.xml
