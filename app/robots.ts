@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { canonicalOrigin } from "@/lib/site-url";
 
 const privateRoutes = [
   "/admin/",
@@ -31,6 +32,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: privateRoutes,
       },
     ],
-    sitemap: "https://shifapk.com/sitemap.xml",
+    sitemap: `${canonicalOrigin()}/sitemap.xml`,
   };
 }

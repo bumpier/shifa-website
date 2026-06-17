@@ -1,31 +1,34 @@
 import type { Metadata } from "next";
 import { brand } from "@/config/brand";
+import { canonicalOrigin } from "@/lib/site-url";
 import { brandCssVariables } from "@/lib/theme";
 import { bodyFont, displayFont } from "@/app/fonts";
 import WhatsAppWidget from "@/components/WhatsAppWidget";
 import "./globals.css";
 
+const SITE = canonicalOrigin();
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://shifapk.com"),
+  metadataBase: new URL(SITE),
   title: {
     default: `${brand.name} | ${brand.tagline}`,
     template: `%s | ${brand.name}`,
   },
   description:
-    "ShifaPK offers premium natural wellness products shipped to UAE, Pakistan & worldwide. Pay with crypto and get 10% off.",
+    "Shifa Asia offers premium natural wellness products shipped to UAE, Pakistan & worldwide. Pay with crypto and get 10% off.",
   openGraph: {
     type: "website",
     siteName: brand.name,
     title: `${brand.name} | ${brand.tagline}`,
     description:
-      "ShifaPK offers premium natural wellness products shipped to UAE, Pakistan & worldwide. Pay with crypto and get 10% off.",
+      "Shifa Asia offers premium natural wellness products shipped to UAE, Pakistan & worldwide. Pay with crypto and get 10% off.",
     images: [{ url: "/logo.png", width: 800, height: 600, alt: brand.name }],
   },
   twitter: {
     card: "summary_large_image",
     title: `${brand.name} | ${brand.tagline}`,
     description:
-      "ShifaPK offers premium natural wellness products shipped to UAE, Pakistan & worldwide.",
+      "Shifa Asia offers premium natural wellness products shipped to UAE, Pakistan & worldwide.",
     images: ["/logo.png"],
   },
   robots: {
@@ -38,8 +41,8 @@ const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: brand.name,
-  url: "https://shifapk.com",
-  logo: "https://shifapk.com/logo.png",
+  url: SITE,
+  logo: `${SITE}/logo.png`,
   contactPoint: {
     "@type": "ContactPoint",
     email: brand.contact.email,
@@ -47,17 +50,17 @@ const organizationSchema = {
     contactType: "customer service",
   },
   description:
-    "ShifaPK offers premium natural wellness products shipped to UAE, Pakistan & worldwide.",
+    "Shifa Asia offers premium natural wellness products shipped to UAE, Pakistan & worldwide.",
 };
 
 const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: brand.name,
-  url: "https://shifapk.com",
+  url: SITE,
   potentialAction: {
     "@type": "SearchAction",
-    target: "https://shifapk.com/products?q={search_term_string}",
+    target: `${SITE}/products?q={search_term_string}`,
     "query-input": "required name=search_term_string",
   },
 };

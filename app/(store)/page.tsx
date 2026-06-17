@@ -22,34 +22,34 @@ const homepageFaqSchema = {
   mainEntity: [
     {
       "@type": "Question",
-      name: "Where does ShifaPK ship to?",
+      name: "Where does Shifa Asia ship to?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "ShifaPK ships everywhere. We focus on UAE and Pakistan, but every order ships tracked, regardless of where you are. We pack and ship every order ourselves.",
+        text: "Shifa Asia ships everywhere. We focus on UAE and Pakistan, but every order ships tracked, regardless of where you are. We pack and ship every order ourselves.",
       },
     },
     {
       "@type": "Question",
-      name: "What payment methods does ShifaPK accept?",
+      name: "What payment methods does Shifa Asia accept?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "ShifaPK accepts cryptocurrency payments — Bitcoin, Ethereum, USDT, and Monero — processed securely through Heleket, with a 10% discount on every crypto order.",
+        text: "Shifa Asia accepts cryptocurrency payments — Bitcoin, Ethereum, USDT, and Monero — processed securely through Heleket, with a 10% discount on every crypto order.",
       },
     },
     {
       "@type": "Question",
-      name: "Are ShifaPK products high quality?",
+      name: "Are Shifa Asia products high quality?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Every ShifaPK product carries a NovaCert Certificate of Analysis with the batch number, compound name, and purity result verified at ≥99.9%. You can view the certificate before you buy. It is on every product page.",
+        text: "Every Shifa Asia product carries a NovaCert Certificate of Analysis with the batch number, compound name, and purity result verified at ≥99.9%. You can view the certificate before you buy. It is on every product page.",
       },
     },
     {
       "@type": "Question",
-      name: "How can I contact ShifaPK?",
+      name: "How can I contact Shifa Asia?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "You can reach ShifaPK by email at hello@shifa.com. We are a small team and reply personally to every enquiry.",
+        text: "You can reach Shifa Asia by email at hello@shifa.com. We are a small team and reply personally to every enquiry.",
       },
     },
   ],

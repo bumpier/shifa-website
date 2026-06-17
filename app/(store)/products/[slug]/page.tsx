@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { prisma } from "@/lib/db";
 import { brand } from "@/config/brand";
+import { canonicalOrigin } from "@/lib/site-url";
 import { parseImages, priceMap, parseVariants } from "@/lib/catalog";
 import { CERTIFICATIONS } from "@/config/certifications";
 import { AddToCart } from "@/components/AddToCart";
@@ -76,7 +77,7 @@ export default async function ProductPage({
         name: `Where can I buy ${product.name}?`,
         acceptedAnswer: {
           "@type": "Answer",
-          text: `You can buy ${product.name} directly from ShifaPK at shifapk.com/products/${product.slug}. We ship to UAE, Pakistan, and worldwide with tracked delivery. Every order includes a NovaCert Certificate of Analysis verifying compound purity at ≥99.9%.`,
+          text: `You can buy ${product.name} directly from ${brand.name} at ${canonicalOrigin()}/products/${product.slug}. We ship to UAE, Pakistan, and worldwide with tracked delivery. Every order includes a NovaCert Certificate of Analysis verifying compound purity at ≥99.9%.`,
         },
       },
       {
@@ -84,7 +85,7 @@ export default async function ProductPage({
         name: `What payment methods can I use to buy ${product.name}?`,
         acceptedAnswer: {
           "@type": "Answer",
-          text: "ShifaPK accepts cryptocurrency payments — Bitcoin, Ethereum, USDT, and Monero — processed securely through Heleket, with a 10% discount on every crypto order.",
+          text: "Shifa Asia accepts cryptocurrency payments — Bitcoin, Ethereum, USDT, and Monero — processed securely through Heleket, with a 10% discount on every crypto order.",
         },
       },
     ],
@@ -106,7 +107,7 @@ export default async function ProductPage({
         product.stock > 0
           ? "https://schema.org/InStock"
           : "https://schema.org/OutOfStock",
-      url: `https://shifapk.com/products/${product.slug}`,
+      url: `${canonicalOrigin()}/products/${product.slug}`,
     },
   };
 

@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 export const brand = {
-  name: "ShifaPK",
+  name: "Shifa Asia",
   tagline: "Cellular wellness, done properly.",
   logo: "/logo.png", // swap this file to change logo
   primaryColor: "#3ec7ed", // main brand colour
