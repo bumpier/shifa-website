@@ -10,18 +10,24 @@ Operator Inputs.
 
 ---
 
-## Operator inputs (decide these first, use consistently)
+## Operator inputs (this deployment)
 
-| Token | Meaning | Example |
+The command blocks below use the token names; substitute these values.
+
+| Token | Meaning | Value |
 |---|---|---|
-| `PRIMARY_DOMAIN` | Main storefront domain you advertise | `shifa-shop.com` |
-| `SPARE_DOMAINS` | 3–5 spare storefront domains (all kept live) | `shifa-eu.com shifa-care.net` |
-| `MAIL_DOMAIN` | Stable Postal admin/sending host (NOT a storefront domain) | `mail.shifa-ops.com` |
-| `SENDING_DOMAIN` | From/envelope domain for emails | `shifa-ops.com` |
-| `ADMIN_EMAIL` | Address on `SENDING_DOMAIN` (certbot + DMARC) | `admin@shifa-ops.com` |
-| `VPS_IP` | Server public IP | `203.0.113.10` |
+| `PRIMARY_DOMAIN` | Main storefront domain you advertise | `shifalabsasia.com` |
+| `SPARE_DOMAINS` | 3–5 spare storefront domains (all kept live) | _none yet — register a few, add each via `add-domain.sh`_ |
+| `MAIL_DOMAIN` | Stable Postal admin/sending host (NOT a storefront domain) | `mail.shifaops.com` |
+| `SENDING_DOMAIN` | From/envelope domain for emails | `shifaops.com` |
+| `ADMIN_EMAIL` | Address on `SENDING_DOMAIN` (certbot + DMARC) | `admin@shifaops.com` |
+| `VPS_IP` | Server public IP | `217.60.195.165` |
 | `APP_USER` | Non-root Linux user that runs the app | `shifa` |
 | `APP_DIR` | Where the app lives | `/srv/shifa` |
+
+> Note: the public DNS A record for `shifalabsasia.com` exposes `217.60.195.165`
+> regardless — that's the accepted IP-block risk below. If you later hide the
+> origin behind Cloudflare, scrub the IP from any committed files first.
 
 **Architecture invariants** (don't break these):
 - ONE app + ONE SQLite DB; every domain is an nginx `server_name` alias.
