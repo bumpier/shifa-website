@@ -102,14 +102,16 @@ openssl rand -hex 32   # -> CRON_SECRET    (PASTE_SECRET_3)
   (the merchant ID is already filled in).
 - (`POSTAL_URL` / `POSTAL_API_KEY` stay empty until Part B.)
 
-## 4. Build the app + database
+## 4. Set up the database, then build
+
+The build reads the database (the sitemap lists products), so create it **first**:
 
 ```bash
 cd /srv/shifa
 npm ci
-npm run build
-npx prisma migrate deploy
+npx prisma migrate deploy          # create the database FIRST
 npx prisma db seed                 # loads your 12-product catalog (run ONCE — it resets the products table)
+npm run build                      # build after the DB exists
 chown -R shifa:shifa /srv/shifa    # hand the files to the app user
 ```
 
