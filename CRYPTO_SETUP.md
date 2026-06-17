@@ -208,4 +208,4 @@ You can extend to handle:
 ## Support
 
 For Heleket issues: https://heleket.com/
-For API documentation: https://heleket.com/
+For API documentation: https://doc.heleket.com/
