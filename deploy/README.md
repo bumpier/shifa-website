@@ -222,12 +222,19 @@ scores SPF/DKIM/DMARC = pass on https://www.mail-tester.com.
 
 ---
 
-## Follow-up (separate task)
+## Multi-domain URL behavior (built in)
 
-The app currently derives referral links, payment callbacks, and email links from
-the build-time `NEXT_PUBLIC_SITE_URL`. With many domains, an affiliate on a spare
-domain would be handed primary-domain links (dead if the primary is blocked). The
-fix is a Next.js code change to read the request host (`x-forwarded-host`, already
-forwarded by nginx in §5), with the payment webhook callback pinned to one
-always-reachable domain. Track it as its own plan. This VPS build works without it
-as long as only one primary domain is advertised at a time.
+The app derives URLs per request via `lib/site-url.ts`, so this works across all
+storefront domains automatically:
+
+- **Referral/recruit links and payment success/cancel redirects** use the domain
+  the visitor is actually on (`X-Forwarded-Host`, forwarded by nginx in §5). An
+  affiliate signed in on any live domain copies a link for *that* domain.
+- **Transactional emails and the payment IPN webhook callback** use the stable
+  `NEXT_PUBLIC_SITE_URL` — they travel out-of-band and must survive a storefront
+  domain being blocked.
+
+> Operational requirement: keep `NEXT_PUBLIC_SITE_URL` pointed at a domain you
+> keep alive (your most stable storefront domain, or a dedicated one). If that
+> domain is ever blocked, update it in `.env.local` and `systemctl restart shifa`
+> so email links and the payment webhook keep resolving.
