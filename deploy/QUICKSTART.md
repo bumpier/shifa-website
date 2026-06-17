@@ -109,7 +109,7 @@ cd /srv/shifa
 npm ci
 npm run build
 npx prisma migrate deploy
-npx prisma db seed                 # optional: adds 4 sample products
+npx prisma db seed                 # loads your 12-product catalog (run ONCE — it resets the products table)
 chown -R shifa:shifa /srv/shifa    # hand the files to the app user
 ```
 
