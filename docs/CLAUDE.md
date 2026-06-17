@@ -1,7 +1,7 @@
 # CLAUDE.md — Shifa E-Commerce Project
 
 ## Project Overview
-**Shifa** is a simple, trustworthy-looking e-commerce website for selling physical shipped products. It must be easy to white-label (logo, colours, branding swappable with minimal effort). The site includes a self-contained CMS/database for managing orders and printing packing slips, and uses NOWPayments as the payment provider — crypto only (Bitcoin, Ethereum, USDT, Monero), with an automatic 10% discount on every order.
+**Shifa** is a simple, trustworthy-looking e-commerce website for selling physical shipped products. It must be easy to white-label (logo, colours, branding swappable with minimal effort). The site includes a self-contained CMS/database for managing orders and printing packing slips, and uses Heleket as the payment provider — crypto only (Bitcoin, Ethereum, USDT, Monero), with an automatic 10% discount on every order.
 
 ---
 
@@ -10,7 +10,7 @@
 - Easy white-labelling: swap logo, brand name, colours in one config file
 - Self-contained: no external CMS dependency — all data stored locally (SQLite)
 - Order management dashboard: view orders, print packing slips
-- NOWPayments crypto payment integration — Bitcoin, Ethereum, USDT, Monero, with a 10% discount on every order
+- Heleket crypto payment integration — Bitcoin, Ethereum, USDT, Monero, with a 10% discount on every order
 - Multi-currency product pricing: AED, PKR, USD, GBP (crypto invoices are settled in USD)
 - Small catalogue to start: 1–10 physical products
 - Invite-only affiliate programme with unique referral links, commission tracking, and affiliate dashboards
@@ -22,12 +22,12 @@
 
 | Layer | Choice | Why |
 |---|---|---|
-| Framework | **Next.js 14** (App Router) | Simple deploy, good SEO, easy to hand off |
+| Framework | **Next.js 15** (App Router) | Simple deploy, good SEO, easy to hand off |
 | Database | **SQLite via Prisma** | Self-contained, no external DB server needed |
 | Admin/CMS | **Custom admin panel** (built-in) | No third-party CMS dependency |
 | Auth | **Jose + bcrypt** | Lightweight JWT, no NextAuth overhead |
 | Email | **Postal** (self-hosted) | Transactional email via our own Postal server HTTP API |
-| Payments | **NOWPayments** | Crypto only: BTC, ETH, USDT, XMR; hosted invoice + signed IPN webhook |
+| Payments | **Heleket** | Crypto only: BTC, ETH, USDT, XMR; hosted payment page + signed webhook (md5 body-sign) |
 | Styling | **Tailwind CSS** | Easy to theme via config |
 | Deployment | **Vercel** (free tier) | Zero-config, works with Next.js perfectly |
 
@@ -67,7 +67,7 @@ To white-label for a new client: update `config/brand.ts` + replace `/public/log
 | `/products` | Product listing page |
 | `/products/[slug]` | Single product page |
 | `/cart` | Cart (local state, no login needed) |
-| `/checkout` | Checkout form — pay with BTC, ETH, USDT, or XMR via NOWPayments |
+| `/checkout` | Checkout form — pay with BTC, ETH, USDT, or XMR via Heleket |
 | `/order-confirmation/[id]` | Thank you page with order summary |
 | `/admin` | Password-protected admin dashboard |
 | `/admin/orders` | All orders table |
@@ -138,7 +138,7 @@ adminNote, requestedAt, processedAt
 
 ---
 
-## Payment Flow (NOWPayments — crypto only)
+## Payment Flow (Heleket — crypto only)
 
 Payment is crypto only. Supported coins, each with a 10% discount:
 - **Bitcoin (BTC)**
@@ -150,10 +150,10 @@ Payment is crypto only. Supported coins, each with a 10% discount:
 1. Customer fills checkout form and selects a crypto method (BTC / ETH / USDT / XMR)
 2. App validates input with Zod server-side
 3. App creates a `pending` Order in SQLite with a UUID order ID (10% discount, settled in USD)
-4. App calls the NOWPayments Create Invoice API → receives a hosted payment URL
-5. Customer is redirected to NOWPayments' hosted page to send crypto
-6. On payment: NOWPayments sends a signed IPN webhook to `/api/webhooks/nowpayments`
-7. Webhook handler verifies signature, marks the order `paid`, decrements stock and creates the affiliate commission
+4. App calls `POST https://api.heleket.com/v1/payment` (authenticated with `merchant` and `sign` headers) → receives a hosted payment page URL
+5. Customer is redirected to Heleket's hosted page to send crypto
+6. On payment: Heleket sends a signed webhook to `/api/webhooks/heleket`; the `sign` field is included inside the JSON body (no signature header)
+7. Webhook handler verifies signature (see scheme below), marks the order `paid`, decrements stock and creates the affiliate commission
 8. Customer lands on `/order-confirmation/[id]`
 
 ### Payment Method Selection UI
@@ -165,17 +165,18 @@ At checkout, show the crypto options with their badges, each flagged with the �
 
 All crypto invoices are charged in USD (the order's USD subtotal, with the 10% discount applied).
 
-### NOWPayments Integration Notes
-- Obtain `NOWPAYMENTS_API_KEY` and `NOWPAYMENTS_IPN_SECRET` from https://nowpayments.io/
-- Integration follows the standard hosted-invoice + IPN pattern
-- IPN webhook signature is HMAC-SHA512 of the raw body, sent in the `X-NOWPAYMENTS-SIG` header
-- Build `lib/nowpayments.ts` as the single integration file — all API calls go through here
-- With no API key in dev, checkout falls back to the local `/dev/nowpayments` simulator
+### Heleket Integration Notes
+- Obtain credentials from https://doc.heleket.com/
+- Integration uses the Heleket REST API: create payment at `POST https://api.heleket.com/v1/payment`, authenticated with a `merchant` header (merchant UUID) and a `sign` header
+- **Signature scheme** — for outgoing requests: `sign = md5( base64( json_body ) + HELEKET_PAYMENT_API_KEY )`
+- **Webhook verification** — Heleket delivers `sign` inside the JSON body (no separate header). To verify: remove the `sign` field, re-serialise the remaining body (PHP `json_encode` style — forward slashes escaped), base64-encode, md5-hash concatenated with `HELEKET_PAYMENT_API_KEY`, then timing-safe-compare with the received `sign`. Successful payment statuses are `paid` and `paid_over`
+- Build `lib/heleket.ts` as the single integration file — all API calls go through here
+- With `HELEKET_MERCHANT_ID` unset in dev, checkout falls back to the local `/dev/heleket` simulator
 
 **Environment variables in `.env.local`:**
 ```
-NOWPAYMENTS_API_KEY=              # leave empty in dev to use the local simulator
-NOWPAYMENTS_IPN_SECRET=          # for IPN webhook signature verification (HMAC-SHA512)
+HELEKET_MERCHANT_ID=               # merchant UUID; leave empty in dev to use the local simulator
+HELEKET_PAYMENT_API_KEY=           # signs outgoing requests + verifies incoming webhooks
 JWT_SECRET=                        # min 32 random chars
 ADMIN_PASSWORD=                    # hashed with bcrypt on first run
 AFFILIATE_DEFAULT_COMMISSION=10    # percent
@@ -291,7 +292,7 @@ Use a simple lookup table — prices are stored per currency in the Product tabl
 ### Referral Tracking
 - Referral code stored in a cookie: `ref_code`, `sameSite=lax`, `maxAge=2592000` (30 days)
 - Last-click attribution — if customer clicks a new affiliate link, the cookie is overwritten
-- Commission only created when order status changes to `paid` (via the NOWPayments webhook)
+- Commission only created when order status changes to `paid` (via the Heleket webhook)
 - Commission amount tracked in USDT, calculated from the order's USD subtotal at
   time of order (USDT is dollar-pegged; original order currency kept for audit)
 
@@ -329,7 +330,7 @@ This section is mandatory. Every rule below must be implemented. No exceptions.
 ---
 
 ### 1. Environment & Secrets
-- All secrets (NOWPayments keys, admin password, JWT secret) live **only** in `.env.local` — never in code, never in `config/brand.ts`, never committed to git
+- All secrets (Heleket keys, admin password, JWT secret) live **only** in `.env.local` — never in code, never in `config/brand.ts`, never committed to git
 - `.env.local` must be in `.gitignore` from day one
 - Add a `.env.example` file with blank placeholders so developers know what vars are needed without exposing real values
 - Never log secrets, tokens, or full request bodies to console in production
@@ -399,18 +400,24 @@ const order = await prisma.$queryRawUnsafe(`SELECT * FROM Order WHERE id = '${or
 
 ### 5. API Routes — Server-Side Protection
 - All `/api/*` routes that mutate data (create order, update status, add product) must verify the request origin using the `Origin` header or a **CSRF token**
-- NOWPayments webhook endpoint (`/api/webhooks/nowpayments`) must verify the **IPN signature** on every incoming request — reject anything that fails verification. The signature is HMAC-SHA512 of the raw body in the `X-NOWPAYMENTS-SIG` header
+- Heleket webhook endpoint (`/api/webhooks/heleket`) must verify the **body signature** on every incoming request — reject anything that fails verification. The `sign` field is delivered inside the JSON body (no separate header); see the Heleket Integration Notes above for the full verification scheme
 - Never expose order details at a guessable URL — use **UUIDs** (not sequential integers) for order IDs
 - Rate-limit all public API endpoints: checkout max 10 requests/min per IP, product listing max 60/min
 
 ```ts
-// lib/nowpayments.ts — always verify the IPN webhook signature
-export function verifyNowpaymentsSignature(payload: string, signature: string): boolean {
+// lib/heleket.ts — always verify the webhook body signature
+import crypto from 'crypto';
+
+export function verifyHeleketSignature(body: Record<string, unknown>): boolean {
+  const received = body['sign'] as string;
+  // Remove sign field, re-serialise (forward slashes escaped, matching PHP json_encode)
+  const { sign: _omit, ...rest } = body;
+  const serialised = JSON.stringify(rest).replace(/\//g, '\\/');
   const expected = crypto
-    .createHmac('sha512', process.env.NOWPAYMENTS_IPN_SECRET!)
-    .update(payload)
+    .createHash('md5')
+    .update(Buffer.from(serialised).toString('base64') + process.env.HELEKET_PAYMENT_API_KEY!)
     .digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received));
 }
 ```
 
@@ -435,7 +442,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
       "font-src 'self' fonts.gstatic.com",
       "img-src 'self' data: blob:",
-      // Crypto checkout is a top-level redirect to the NOWPayments hosted page,
+      // Crypto checkout is a top-level redirect to the Heleket hosted page,
       // so no extra connect/frame hosts are required.
       "connect-src 'self'",
       "form-action 'self'",
@@ -454,8 +461,8 @@ const securityHeaders = [
 - Pin all dependencies to exact versions in `package.json` (no `^` or `~`)
 - Run `npm audit` before every deploy — fix all critical and high severity issues before going live
 - Do not install packages with fewer than 10,000 weekly downloads unless absolutely necessary
-- Use only the official NOWPayments REST API as documented — no unofficial wrappers
-- Do not use any community-built NOWPayments packages; write `lib/nowpayments.ts` from scratch against their documented API
+- Use only the official Heleket REST API as documented at https://doc.heleket.com/ — no unofficial wrappers
+- Do not use any community-built Heleket packages; write `lib/heleket.ts` from scratch against the documented API
 
 ---
 
@@ -481,7 +488,7 @@ const safeName = path.basename(filename); // strips any ../ attempts
 
 ### 10. Data Minimisation (GDPR / Privacy)
 - Only collect what is needed to fulfil the order: name, email, phone, shipping address
-- Do not store payment details — ever. Payment is crypto only; NOWPayments handles the entire payment on their own servers and the customer is redirected there to pay
+- Do not store payment details — ever. Payment is crypto only; Heleket handles the entire payment on their own servers and the customer is redirected there to pay
 - Add a clear privacy policy page listing what data is stored and why
 - Provide a contact email for data deletion requests
 
@@ -508,7 +515,7 @@ Before going live, verify every item:
 - [ ] `.env.local` is in `.gitignore` and NOT in the repo
 - [ ] Admin password is bcrypt-hashed, min 12 chars
 - [ ] All `/admin/*` routes blocked server-side without valid session cookie
-- [ ] NOWPayments IPN webhook verifies the HMAC-SHA512 signature before processing
+- [ ] Heleket webhook verifies the body signature (md5 of base64(body-without-sign) + payment API key, timing-safe compare) before processing
 - [ ] All form inputs validated with Zod on the server
 - [ ] SQLite file is NOT in `/public`
 - [ ] Security headers returning correctly (check via [securityheaders.com](https://securityheaders.com))
@@ -521,7 +528,7 @@ Before going live, verify every item:
 - [ ] Affiliate invite tokens are single-use and expire after 48 hours
 - [ ] Affiliates can only access their own dashboard data (server-side check on every request)
 - [ ] Bank details are encrypted at rest with AES-256-GCM
-- [ ] Commission records are created only via the NOWPayments webhook (not client-triggered)
+- [ ] Commission records are created only via the Heleket webhook (not client-triggered)
 - [ ] Email verification required before affiliate dashboard is accessible
 
 ---
@@ -529,12 +536,12 @@ Before going live, verify every item:
 ## Getting Started Instructions (for Claude Code)
 
 When starting this project, Claude should:
-1. Scaffold a Next.js 14 app with Tailwind and Prisma
+1. Scaffold a Next.js 15 app with Tailwind and Prisma
 2. Set up SQLite database with the schema above — store DB file at `/data/shifa.db`, never in `/public`
 3. Create `config/brand.ts` as the single source of truth for branding
 4. Add security headers to `next.config.js` immediately — before any other work
 5. Build storefront pages first (homepage → product page → cart → checkout)
-6. Wire up NOWPayments using `lib/nowpayments.ts` — implement Create Invoice, the IPN webhook handler, and HMAC-SHA512 signature verification. Reference the NOWPayments API docs for exact endpoints
+6. Wire up Heleket using `lib/heleket.ts` — implement Create Payment (`POST https://api.heleket.com/v1/payment`), the webhook handler at `/api/webhooks/heleket`, and body-sign verification (md5 of base64(body-without-sign) + payment API key). Reference the Heleket API docs at https://doc.heleket.com/ for exact endpoints
 7. Build auth system (register/login/forgot-password) using Jose + bcrypt
 8. Build affiliate invite flow — admin generates token, affiliate registers via token
 9. Build affiliate dashboard — referral link, earnings table, payout request
