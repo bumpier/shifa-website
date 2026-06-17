@@ -56,8 +56,9 @@ stock decremented, and the affiliate commission created — never client-side.
 **Dev simulator:** with no `HELEKET_MERCHANT_ID`, checkout redirects to
 `/dev/heleket`, a local stand-in for the hosted payment page that fires
 correctly signed webhooks at the real endpoint, so the whole flow
-(checkout → webhook → paid order → commission) works locally. It returns 404
-whenever a merchant ID is configured.
+(checkout → webhook → paid order → commission) works locally. Because the
+simulator signs those webhooks, set `HELEKET_PAYMENT_API_KEY` to any non-empty
+value in dev as well. It returns 404 whenever a merchant ID is configured.
 
 ## Repurchase nudge emails
 

@@ -171,7 +171,7 @@ All crypto invoices are charged in USD (the order's USD subtotal, with the 10% d
 - **Signature scheme** — for outgoing requests: `sign = md5( base64( json_body ) + HELEKET_PAYMENT_API_KEY )`
 - **Webhook verification** — Heleket delivers `sign` inside the JSON body (no separate header). To verify: remove the `sign` field, re-serialise the remaining body (PHP `json_encode` style — forward slashes escaped), base64-encode, md5-hash concatenated with `HELEKET_PAYMENT_API_KEY`, then timing-safe-compare with the received `sign`. Successful payment statuses are `paid` and `paid_over`
 - Build `lib/heleket.ts` as the single integration file — all API calls go through here
-- With `HELEKET_MERCHANT_ID` unset in dev, checkout falls back to the local `/dev/heleket` simulator
+- With `HELEKET_MERCHANT_ID` unset in dev, checkout falls back to the local `/dev/heleket` simulator. The simulator signs its own test webhooks, so `HELEKET_PAYMENT_API_KEY` must still be set to any non-empty value in dev
 
 **Environment variables in `.env.local`:**
 ```
