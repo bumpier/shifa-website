@@ -15,13 +15,13 @@ export const metadata: Metadata = {
     template: `%s | ${brand.name}`,
   },
   description:
-    "Shifa Asia offers premium natural wellness products shipped to UAE, Pakistan & worldwide. Pay with crypto and get 10% off.",
+    "Shifa Asia offers premium natural wellness products shipped to UAE, Pakistan & worldwide. Pay securely with crypto.",
   openGraph: {
     type: "website",
     siteName: brand.name,
     title: `${brand.name} | ${brand.tagline}`,
     description:
-      "Shifa Asia offers premium natural wellness products shipped to UAE, Pakistan & worldwide. Pay with crypto and get 10% off.",
+      "Shifa Asia offers premium natural wellness products shipped to UAE, Pakistan & worldwide. Pay securely with crypto.",
     images: [{ url: "/logo.png", width: 800, height: 600, alt: brand.name }],
   },
   twitter: {

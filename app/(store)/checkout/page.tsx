@@ -8,11 +8,11 @@ import { brand, formatPrice, type Currency } from "@/config/brand";
 
 type Method = "btc" | "eth" | "usdt" | "xmr";
 
-const METHODS: { id: Method; label: string; hint: string; badge: string; discount?: boolean }[] = [
-  { id: "btc", label: "Bitcoin", hint: "BTC with 10% discount", badge: "₿", discount: true },
-  { id: "eth", label: "Ethereum", hint: "ETH with 10% discount", badge: "Ξ", discount: true },
-  { id: "usdt", label: "USDT", hint: "Tether stablecoin with 10% discount", badge: "💵", discount: true },
-  { id: "xmr", label: "Monero", hint: "XMR with 10% discount - private transactions", badge: "🔐", discount: true },
+const METHODS: { id: Method; label: string; hint: string; badge: string }[] = [
+  { id: "btc", label: "Bitcoin", hint: "BTC", badge: "₿" },
+  { id: "eth", label: "Ethereum", hint: "ETH", badge: "Ξ" },
+  { id: "usdt", label: "USDT", hint: "Tether stablecoin", badge: "💵" },
+  { id: "xmr", label: "Monero", hint: "XMR - private transactions", badge: "🔐" },
 ];
 
 export default function CheckoutPage() {
@@ -33,13 +33,12 @@ function CheckoutForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // All payments are crypto: always charged in USD with a 10% discount
+  // All payments are crypto: always charged in USD
   const chargeCurrency: Currency = "USD";
   const total = items.reduce(
     (sum, i) => sum + parseFloat(i.prices[chargeCurrency] ?? "0") * i.qty,
     0
   );
-  const discountedTotal = total * 0.9;
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -182,11 +181,6 @@ function CheckoutForm() {
                     <span className="block text-sm font-semibold text-ink">{m.label}</span>
                     <span className="block text-xs text-ink-soft">{m.hint}</span>
                   </span>
-                  {m.discount && (
-                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                      -10%
-                    </span>
-                  )}
                 </label>
               ))}
             </div>
@@ -209,21 +203,11 @@ function CheckoutForm() {
             ))}
           </ul>
 
-          <div className="mt-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
-            <span className="font-semibold">10% crypto discount applied!</span>
-          </div>
-
           <div className="mt-5 flex flex-col gap-2 border-t border-line pt-4">
-            {total !== discountedTotal && (
-              <div className="flex justify-between text-sm">
-                <span className="text-ink-soft">Subtotal</span>
-                <span className="text-ink-soft">{formatPrice(total, chargeCurrency)}</span>
-              </div>
-            )}
             <div className="flex justify-between">
-              <span className="font-semibold text-ink">Total after discount</span>
+              <span className="font-semibold text-ink">Total</span>
               <span className="font-semibold text-brand-deep">
-                {formatPrice(discountedTotal, chargeCurrency)}
+                {formatPrice(total, chargeCurrency)}
               </span>
             </div>
           </div>

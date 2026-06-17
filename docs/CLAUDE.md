@@ -1,7 +1,7 @@
 # CLAUDE.md — Shifa E-Commerce Project
 
 ## Project Overview
-**Shifa** is a simple, trustworthy-looking e-commerce website for selling physical shipped products. It must be easy to white-label (logo, colours, branding swappable with minimal effort). The site includes a self-contained CMS/database for managing orders and printing packing slips, and uses Heleket as the payment provider — crypto only (Bitcoin, Ethereum, USDT, Monero), with an automatic 10% discount on every order.
+**Shifa** is a simple, trustworthy-looking e-commerce website for selling physical shipped products. It must be easy to white-label (logo, colours, branding swappable with minimal effort). The site includes a self-contained CMS/database for managing orders and printing packing slips, and uses Heleket as the payment provider — crypto only (Bitcoin, Ethereum, USDT, Monero).
 
 ---
 
@@ -10,7 +10,7 @@
 - Easy white-labelling: swap logo, brand name, colours in one config file
 - Self-contained: no external CMS dependency — all data stored locally (SQLite)
 - Order management dashboard: view orders, print packing slips
-- Heleket crypto payment integration — Bitcoin, Ethereum, USDT, Monero, with a 10% discount on every order
+- Heleket crypto payment integration — Bitcoin, Ethereum, USDT, Monero
 - Multi-currency product pricing: AED, PKR, USD, GBP (crypto invoices are settled in USD)
 - Small catalogue to start: 1–10 physical products
 - Invite-only affiliate programme with unique referral links, commission tracking, and affiliate dashboards
@@ -140,7 +140,7 @@ adminNote, requestedAt, processedAt
 
 ## Payment Flow (Heleket — crypto only)
 
-Payment is crypto only. Supported coins, each with a 10% discount:
+Payment is crypto only. Supported coins:
 - **Bitcoin (BTC)**
 - **Ethereum (ETH)**
 - **USDT** — dollar-pegged stablecoin
@@ -149,7 +149,7 @@ Payment is crypto only. Supported coins, each with a 10% discount:
 ### Checkout Flow
 1. Customer fills checkout form and selects a crypto method (BTC / ETH / USDT / XMR)
 2. App validates input with Zod server-side
-3. App creates a `pending` Order in SQLite with a UUID order ID (10% discount, settled in USD)
+3. App creates a `pending` Order in SQLite with a UUID order ID (settled in USD)
 4. App calls `POST https://api.heleket.com/v1/payment` (authenticated with `merchant` and `sign` headers) → receives a hosted payment page URL
 5. Customer is redirected to Heleket's hosted page to send crypto
 6. On payment: Heleket sends a signed webhook to `/api/webhooks/heleket`; the `sign` field is included inside the JSON body (no signature header)
@@ -157,13 +157,13 @@ Payment is crypto only. Supported coins, each with a 10% discount:
 8. Customer lands on `/order-confirmation/[id]`
 
 ### Payment Method Selection UI
-At checkout, show the crypto options with their badges, each flagged with the −10% discount:
+At checkout, show the crypto options with their badges:
 - ₿ Bitcoin
 - Ξ Ethereum
 - 💵 USDT
 - 🔐 Monero (private)
 
-All crypto invoices are charged in USD (the order's USD subtotal, with the 10% discount applied).
+All crypto invoices are charged in USD (the order's USD subtotal).
 
 ### Heleket Integration Notes
 - Obtain credentials from https://doc.heleket.com/

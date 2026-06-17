@@ -75,11 +75,6 @@ export async function POST(req: Request) {
       };
     });
 
-    // All payments are crypto — apply the 10% crypto discount
-    const discount = total.mul(0.1); // 10% off
-    total = total.sub(discount);
-    subtotalUsd = subtotalUsd.mul(0.9); // also apply to USD basis
-
     const refCode = (await cookies()).get("ref_code")?.value ?? null;
 
     const order = await prisma.order.create({
@@ -106,7 +101,7 @@ export async function POST(req: Request) {
 
     const cryptoPayment = await createCryptoPayment({
       orderId: order.id,
-      amount: subtotalUsd.toFixed(2), // USD total, 10% crypto discount already applied
+      amount: subtotalUsd.toFixed(2), // USD total
       method: input.paymentMethod as CryptoPaymentMethod,
       customerName: input.name,
       customerEmail: input.email,
@@ -117,7 +112,7 @@ export async function POST(req: Request) {
       where: { id: order.id },
       data: {
         paymentRef: cryptoPayment.paymentRef,
-        notes: `Crypto payment (${input.paymentMethod.toUpperCase()}) - 10% discount applied`,
+        notes: `Crypto payment (${input.paymentMethod.toUpperCase()})`,
       },
     });
 

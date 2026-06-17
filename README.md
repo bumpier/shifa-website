@@ -2,7 +2,7 @@
 
 A self-contained e-commerce site for physical products with a built-in admin
 panel, an invite-only affiliate programme, and crypto payments via Heleket
-(Bitcoin, Ethereum, USDT, Monero — 10% discount on every order).
+(Bitcoin, Ethereum, USDT, Monero).
 
 Stack: Next.js 15 (App Router) · SQLite via Prisma · Tailwind CSS · Jose + bcrypt · Postal (self-hosted email).
 
@@ -42,8 +42,8 @@ imports in `app/fonts.ts`.
 
 ## Payments (Heleket — crypto only)
 
-Payment is crypto-only: Bitcoin, Ethereum, USDT and Monero, each with an
-automatic 10% discount. `lib/heleket.ts` is the single integration point —
+Payment is crypto-only: Bitcoin, Ethereum, USDT and Monero. `lib/heleket.ts`
+is the single integration point —
 it creates a hosted payment and the customer is redirected to Heleket to
 pay. Set `HELEKET_MERCHANT_ID` and `HELEKET_PAYMENT_API_KEY` in `.env.local`.
 

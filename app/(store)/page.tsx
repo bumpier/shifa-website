@@ -8,7 +8,7 @@ import { priceMap } from "@/lib/catalog";
 export const metadata: Metadata = {
   title: `${brand.name} | NovaCert-Certified Peptides | UAE & Pakistan`,
   description:
-    "Research-grade peptides for body composition, recovery, skin, and longevity. NovaCert-certified purity at ≥99.9%. Tracked shipping to UAE, Pakistan, and worldwide. Pay with crypto (BTC, ETH, USDT, XMR) and get 10% off.",
+    "Research-grade peptides for body composition, recovery, skin, and longevity. NovaCert-certified purity at ≥99.9%. Tracked shipping to UAE, Pakistan, and worldwide. Pay securely with crypto (BTC, ETH, USDT, XMR).",
   openGraph: {
     title: `${brand.name} | NovaCert-Certified Peptides | UAE & Pakistan`,
     description:
@@ -33,7 +33,7 @@ const homepageFaqSchema = {
       name: "What payment methods does Shifa Asia accept?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Shifa Asia accepts cryptocurrency payments — Bitcoin, Ethereum, USDT, and Monero — processed securely through Heleket, with a 10% discount on every crypto order.",
+        text: "Shifa Asia accepts cryptocurrency payments — Bitcoin, Ethereum, USDT, and Monero — processed securely through Heleket.",
       },
     },
     {

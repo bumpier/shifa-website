@@ -6,7 +6,7 @@ import { priceMap } from "@/lib/catalog";
 export const metadata: Metadata = {
   title: "Research-Grade Peptides | NovaCert Certified",
   description:
-    "Browse the full Shifa Asia range of NovaCert-certified peptides at ≥99.9% purity. Tracked delivery to UAE, Pakistan & worldwide. Pay with crypto and get 10% off.",
+    "Browse the full Shifa Asia range of NovaCert-certified peptides at ≥99.9% purity. Tracked delivery to UAE, Pakistan & worldwide. Pay securely with crypto.",
   openGraph: {
     title: "Research-Grade Peptides | Shifa Asia",
     description:
