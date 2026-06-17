@@ -1,73 +1,116 @@
-# Postal email setup (self-hosted)
+# Postal email setup — get POSTAL_URL and POSTAL_API_KEY
 
-Postal sends from **SENDING_DOMAIN** via **MAIL_DOMAIN**, kept separate from the
-burnable storefront domains so a blocked storefront never poisons mail reputation.
+Goal: a working self-hosted Postal at **https://mail.shifaops.com** that sends
+mail from **shifaops.com**, giving you the two values the app needs:
 
-## A. Prerequisites
-- DNS A record: `MAIL_DOMAIN` → `VPS_IP`.
-- Reverse DNS (PTR): ask the VPS provider to set `VPS_IP` → `MAIL_DOMAIN`.
-- Docker:
-  ```bash
-  curl -fsSL https://get.docker.com | sudo sh
-  ```
+- **`POSTAL_URL`** = `https://mail.shifaops.com` (the base URL of your Postal install)
+- **`POSTAL_API_KEY`** = an **API**-type credential you create on a Mail Server in
+  Postal's web UI (the app sends via `POST {POSTAL_URL}/api/v1/send/message` with
+  header `X-Server-API-Key: <this key>`)
 
-## B. Install Postal
-Follow the official installer (https://docs.postalserver.io/getting-started/installation):
+Postal recommends its own dedicated box (≥4 GB RAM, 2 CPU). We're co-locating on
+the storefront VPS — fine for low volume, but nginx already owns ports 80/443, so
+we front Postal with **nginx** (not Postal's bundled Caddy) to avoid a port clash.
+
+---
+
+## ⏸ A. DNS + reverse DNS (do first)
+
+- A record: `mail.shifaops.com` → `217.60.195.165`
+- Ask your VPS provider to set **reverse DNS (PTR)**: `217.60.195.165` → `mail.shifaops.com`
+- Port 25 outbound must be open (it is on this VPS).
+
+## B. Install Docker + MariaDB + the `postal` CLI — as a sudo user
+
 ```bash
+sudo apt-get install -y git curl jq
+
+# Prereqs script: installs Docker + a MariaDB container (Postal v3).
+# NOTE: it sets a default/insecure DB password — fine to start; harden later.
+curl https://raw.githubusercontent.com/postalserver/install/main/prerequisites/install-ubuntu.v3.sh | sudo bash
+
+# Install the postal command
 sudo git clone https://github.com/postalserver/install /opt/postal/install
 sudo ln -s /opt/postal/install/bin/postal /usr/bin/postal
-sudo postal bootstrap MAIL_DOMAIN
-sudo postal initialize
-sudo postal make-user        # creates the admin login
-sudo postal start
 ```
 
-## C. DNS records (add at your DNS host for SENDING_DOMAIN)
-Postal's web UI prints exact values when you add the domain. You will set:
-- **SPF**   `TXT @  "v=spf1 a mx include:MAIL_DOMAIN ~all"`
-- **DKIM**  `TXT <selector>._domainkey  "v=DKIM1; t=s; h=sha256; p=<key from Postal>"`
-- **DMARC** `TXT _dmarc  "v=DMARC1; p=quarantine; rua=mailto:ADMIN_EMAIL"`
-- **Return-Path** `CNAME` as printed by Postal (custom return-path / bounces).
+## C. Bootstrap, initialize, start Postal
 
-## D. Create the mail server + API credential
-In the Postal web UI: create an Organization → Mail Server → add `SENDING_DOMAIN`
-(verify the DNS above) → Credentials → **API** → copy the key.
+```bash
+# Generates /opt/postal/config/{postal.yml, signing.key, Caddyfile}
+postal bootstrap mail.shifaops.com
 
-## E. Wire the app
-Edit `/srv/shifa/.env.local`:
+# Open the config and set the MariaDB password to match the prereqs script,
+# and confirm the web host is mail.shifaops.com:
+sudo nano /opt/postal/config/postal.yml
+
+postal initialize          # create the database schema
+postal make-user           # ⏸ create your admin login (use admin@shifaops.com)
+postal start               # start the containers
 ```
-POSTAL_URL=https://MAIL_DOMAIN
-POSTAL_API_KEY=<api credential from step D>
-EMAIL_FROM="Shifa <noreply@SENDING_DOMAIN>"
-```
-Then `sudo systemctl restart shifa`.
 
-## F. Verify deliverability
-Trigger a real email (affiliate invite / password reset, or a Postal test send) to
-a https://www.mail-tester.com address and confirm **SPF, DKIM, and DMARC all PASS**.
-Fresh-IP reputation is weak at first — warm up volume gradually. If deliverability
-stays poor, point Postal at a smarthost relay (Postal → Mail Server → SMTP settings).
+## D. Front it with nginx + TLS (we use nginx, not Caddy)
 
-## G. Front the web UI with TLS on MAIL_DOMAIN
-Postal ships a web server on `127.0.0.1:5000` by default. Reverse-proxy it with a
-**separate** cert named `postal` (kept off the storefront `shifa` cert):
+Postal's web runs on `127.0.0.1:5000`. Reverse-proxy `mail.shifaops.com` to it and
+get a separate cert named `postal` (kept off the storefront `shifa` cert):
 
 ```bash
 sudo tee /etc/nginx/sites-available/postal.conf >/dev/null <<'NGINX'
 server {
     listen 80;
-    server_name MAIL_DOMAIN;
+    server_name mail.shifaops.com;
+    client_max_body_size 50m;
     location / {
         proxy_pass http://127.0.0.1:5000;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
 NGINX
 sudo ln -sf /etc/nginx/sites-available/postal.conf /etc/nginx/sites-enabled/postal.conf
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx --cert-name postal -d MAIL_DOMAIN --redirect \
-  --non-interactive --agree-tos -m ADMIN_EMAIL
+sudo certbot --nginx --cert-name postal -d mail.shifaops.com --redirect \
+  --non-interactive --agree-tos -m admin@shifaops.com
 ```
 
-Verify: `https://MAIL_DOMAIN` serves the Postal login over valid TLS.
+> If `https://mail.shifaops.com` doesn't load, confirm Postal's web container is
+> published on `127.0.0.1:5000` (`sudo docker ps` / check `web_server` in
+> `postal.yml`); adjust the `proxy_pass` port to match.
+
+Open **https://mail.shifaops.com** and log in with the admin user from step C.
+
+## E. Create org → mail server → sending domain (in the web UI)
+
+1. **Create Organization** (e.g. "Shifa").
+2. **Create Mail Server** inside it (e.g. "shifa-prod").
+3. **Add Domain** `shifaops.com`. Postal shows the exact DNS records to add — set
+   them at your DNS host for `shifaops.com`:
+   - **SPF** — `TXT @` including Postal's host (e.g. `v=spf1 a mx include:mail.shifaops.com ~all`)
+   - **DKIM** — `TXT <selector>._domainkey` with the public key Postal generates
+   - **Return-path** — the `CNAME` Postal shows (bounce/`rp` host)
+   - **DMARC** — `TXT _dmarc` → `v=DMARC1; p=quarantine; rua=mailto:admin@shifaops.com`
+   - (MX records only if you also want to *receive* mail — not needed for send-only)
+4. Click **Verify** in Postal until all records are green.
+
+## F. Create the API credential → this is POSTAL_API_KEY
+
+In the Mail Server: **Credentials → New Credential → type "API"**. Name it
+(e.g. "website"). Postal shows a key — that string is your **`POSTAL_API_KEY`**.
+
+## G. Wire the app and test
+
+Edit `/srv/shifa/.env.local`:
+```
+POSTAL_URL=https://mail.shifaops.com
+POSTAL_API_KEY=<the API credential from step F>
+EMAIL_FROM="Shifa <noreply@shifaops.com>"
+```
+```bash
+sudo systemctl restart shifa
+```
+
+Test deliverability: trigger an email (request a password reset, or send a test
+from Postal) to a https://www.mail-tester.com address and confirm **SPF, DKIM,
+DMARC all pass**. Fresh-IP reputation is weak at first — warm up volume gradually.
+If it stays poor, point Postal at a smarthost relay (Mail Server → SMTP settings).
