@@ -38,7 +38,7 @@ model Order {
   currency        String
   totalAmount     Decimal
   subtotalUsd     Decimal  @default(0) // commission basis (USD ≈ USDT), computed at order time
-  paymentRef      String? // crypto payment gateway (NOWPayments) invoice/payment id
+  paymentRef      String? // crypto payment gateway invoice/payment id
   paymentMethod   String // btc | eth | usdt | xmr
   refCode         String? // affiliate referral code captured from cookie
   notes           String?
