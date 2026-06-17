@@ -124,8 +124,10 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000   # expect 200
 
 ## 6. Check DNS has propagated
 
+Both must print `217.60.195.165` before step 7 — certbot fails if **either** is missing:
 ```bash
-dig +short shifalabsasia.com        # must print 217.60.195.165 before step 7
+dig +short shifalabsasia.com
+dig +short www.shifalabsasia.com
 ```
 
 ## 7. Turn on nginx + HTTPS
@@ -139,7 +141,7 @@ rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
 
 certbot --nginx --cert-name shifa --redirect --non-interactive \
-  --agree-tos -m admin@shifaops.com \
+  --agree-tos -m shifalabs@protonmail.com \
   -d shifalabsasia.com -d www.shifalabsasia.com
 
 systemctl reload nginx
