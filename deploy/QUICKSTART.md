@@ -13,8 +13,8 @@ you — it can't be logged into from outside, and you never switch to it.
 Values are already filled in for this deployment:
 
 - Website: **shifalabsasia.com** (+ www)
-- Email host: **mail.shifaops.com** · sends from **shifaops.com**
-- Admin email: **admin@shifaops.com**
+- Email host: **mail.shifalabsops.com** · sends from **shifalabsops.com**
+- Admin email: **admin@shifalabsops.com**
 - Server IP: **217.60.195.165**
 
 Three parts: **A) the website**, **B) email (Postal)**, **C) backups & day-to-day**.
@@ -32,10 +32,10 @@ At your domain registrar / DNS host, add these records:
 |---|---|---|
 | A | `shifalabsasia.com` | `217.60.195.165` |
 | A | `www.shifalabsasia.com` | `217.60.195.165` |
-| A | `mail.shifaops.com` | `217.60.195.165` |
+| A | `mail.shifalabsops.com` | `217.60.195.165` |
 
 Then ask your VPS provider to set **reverse DNS (PTR)** for `217.60.195.165` →
-`mail.shifaops.com` (needed for email later).
+`mail.shifalabsops.com` (needed for email later).
 
 Check it worked: `dig +short shifalabsasia.com` should print `217.60.195.165`.
 
@@ -83,7 +83,7 @@ MASTER_OVERRIDE_PERCENT=2.5
 MASTER_SALES_THRESHOLD=10
 POSTAL_URL=
 POSTAL_API_KEY=
-EMAIL_FROM="Shifa <noreply@shifaops.com>"
+EMAIL_FROM="Shifa <noreply@shifalabsops.com>"
 ENCRYPTION_KEY=PASTE_SECRET_2
 CRON_SECRET=PASTE_SECRET_3
 EOF
@@ -176,14 +176,14 @@ ln -s /opt/postal/install/bin/postal /usr/bin/postal
 ## 9. Start Postal
 
 ```bash
-postal bootstrap mail.shifaops.com
+postal bootstrap mail.shifalabsops.com
 ```
 ⏸ BY HAND: `nano /opt/postal/config/postal.yml` — set the database password to
-match the one from step 8 and confirm the web host is `mail.shifaops.com`. Save.
+match the one from step 8 and confirm the web host is `mail.shifalabsops.com`. Save.
 
 ```bash
 postal initialize        # set up the database
-postal make-user         # ⏸ create your admin login (use admin@shifaops.com)
+postal make-user         # ⏸ create your admin login (use admin@shifalabsops.com)
 postal start             # start it
 ```
 
@@ -193,7 +193,7 @@ postal start             # start it
 tee /etc/nginx/sites-available/postal.conf >/dev/null <<'NGINX'
 server {
     listen 80;
-    server_name mail.shifaops.com;
+    server_name mail.shifalabsops.com;
     client_max_body_size 50m;
     location / {
         proxy_pass http://127.0.0.1:5000;
@@ -205,11 +205,11 @@ server {
 NGINX
 ln -sf /etc/nginx/sites-available/postal.conf /etc/nginx/sites-enabled/postal.conf
 nginx -t && systemctl reload nginx
-certbot --nginx --cert-name postal -d mail.shifaops.com --redirect \
-  --non-interactive --agree-tos -m admin@shifaops.com
+certbot --nginx --cert-name postal -d mail.shifalabsops.com --redirect \
+  --non-interactive --agree-tos -m admin@shifalabsops.com
 ```
 
-Open **https://mail.shifaops.com** in a browser and log in with the admin user
+Open **https://mail.shifalabsops.com** in a browser and log in with the admin user
 from step 9. (If the page doesn't load, run `docker ps` and make sure Postal's
 web container is on port 5000; adjust the `proxy_pass` port to match.)
 
@@ -217,12 +217,12 @@ web container is on port 5000; adjust the `proxy_pass` port to match.)
 
 1. Create an **Organization** (e.g. "Shifa").
 2. Inside it, create a **Mail Server** (e.g. "shifa-prod").
-3. Click **Domains → Add Domain** and enter `shifaops.com`.
-4. Postal shows you exact DNS records — add them at your DNS host for `shifaops.com`:
+3. Click **Domains → Add Domain** and enter `shifalabsops.com`.
+4. Postal shows you exact DNS records — add them at your DNS host for `shifalabsops.com`:
    - **SPF** (a `TXT` record)
    - **DKIM** (a `TXT` record)
    - **Return-path** (a `CNAME` record)
-   - **DMARC** (a `TXT` record): `v=DMARC1; p=quarantine; rua=mailto:admin@shifaops.com`
+   - **DMARC** (a `TXT` record): `v=DMARC1; p=quarantine; rua=mailto:admin@shifalabsops.com`
 5. Back in Postal, click **Check / Verify** until every record is green.
 
 ## 12. ⏸ Create the API key
@@ -234,7 +234,7 @@ In the Mail Server: **Credentials → New Credential → type "API"**, name it
 
 ⏸ BY HAND: `nano /srv/shifa/.env.local` and set:
 ```
-POSTAL_URL=https://mail.shifaops.com
+POSTAL_URL=https://mail.shifalabsops.com
 POSTAL_API_KEY=<the API key from step 12>
 ```
 Then restart and test:
@@ -266,7 +266,7 @@ Test the backup once: `bash /srv/shifa/deploy/scripts/backup.sh`
 
 **Add a backup/spare website domain** (point its DNS at `217.60.195.165` first):
 ```bash
-ADMIN_EMAIL=admin@shifaops.com bash /srv/shifa/deploy/scripts/add-domain.sh NEWDOMAIN.com
+ADMIN_EMAIL=admin@shifalabsops.com bash /srv/shifa/deploy/scripts/add-domain.sh NEWDOMAIN.com
 ```
 
 **Deploy a code update:**
@@ -286,7 +286,7 @@ bash /srv/shifa/deploy/scripts/deploy.sh
 | `NEXT_PUBLIC_SITE_URL` | `https://shifalabsasia.com` |
 | `HELEKET_MERCHANT_ID` | already filled in (`04cfc4f1-…`) |
 | `HELEKET_PAYMENT_API_KEY` | Heleket dashboard → API |
-| `POSTAL_URL` | `https://mail.shifaops.com` (after Part B) |
+| `POSTAL_URL` | `https://mail.shifalabsops.com` (after Part B) |
 | `POSTAL_API_KEY` | Postal web UI → Mail Server → Credentials → API (step 12) |
 | `JWT_SECRET` / `ENCRYPTION_KEY` / `CRON_SECRET` | `openssl rand -hex 32` (step 3) |
 | `ADMIN_PASSWORD` | you choose it |

@@ -18,9 +18,9 @@ The command blocks below use the token names; substitute these values.
 |---|---|---|
 | `PRIMARY_DOMAIN` | Main storefront domain you advertise | `shifalabsasia.com` |
 | `SPARE_DOMAINS` | 3–5 spare storefront domains (all kept live) | _none yet — register a few, add each via `add-domain.sh`_ |
-| `MAIL_DOMAIN` | Stable Postal admin/sending host (NOT a storefront domain) | `mail.shifaops.com` |
-| `SENDING_DOMAIN` | From/envelope domain for emails | `shifaops.com` |
-| `ADMIN_EMAIL` | Address on `SENDING_DOMAIN` (certbot + DMARC) | `admin@shifaops.com` |
+| `MAIL_DOMAIN` | Stable Postal admin/sending host (NOT a storefront domain) | `mail.shifalabsops.com` |
+| `SENDING_DOMAIN` | From/envelope domain for emails | `shifalabsops.com` |
+| `ADMIN_EMAIL` | Address on `SENDING_DOMAIN` (certbot + DMARC) | `admin@shifalabsops.com` |
 | `VPS_IP` | Server public IP | `217.60.195.165` |
 | `APP_USER` | Non-root Linux user that runs the app | `shifa` |
 | `APP_DIR` | Where the app lives | `/srv/shifa` |
