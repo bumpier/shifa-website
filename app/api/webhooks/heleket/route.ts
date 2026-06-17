@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyHeleketSignature } from "@/lib/heleket";
 import { createReferralForPaidOrder } from "@/lib/affiliate";
-import { sendOrderConfirmationEmail } from "@/lib/customer-email";
+import { sendOrderConfirmationEmail, sendNewOrderAlert } from "@/lib/customer-email";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +71,10 @@ export async function POST(req: Request) {
       // Commission records are created ONLY here — webhook-driven
       await createReferralForPaidOrder(orderId);
       const paidOrder = await prisma.order.findUnique({ where: { id: orderId } });
-      if (paidOrder) void sendOrderConfirmationEmail(paidOrder);
+      if (paidOrder) {
+        void sendOrderConfirmationEmail(paidOrder); // to the customer
+        void sendNewOrderAlert(paidOrder); // to the shop owner (ORDER_NOTIFY_EMAIL)
+      }
     }
 
     return NextResponse.json({ ok: true });

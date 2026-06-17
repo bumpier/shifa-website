@@ -141,3 +141,50 @@ export async function sendRepurchaseNudgeEmail(
         <a href="${unsubscribeUrl(order.customerEmail)}" style="color:#6b7a72">Unsubscribe</a></p>`)
   );
 }
+
+// ── Admin alert: notify the shop owner when a paid order lands ───────────
+// Sent to ORDER_NOTIFY_EMAIL (if set) from the payment webhook. Not recorded in
+// EmailLog — the webhook's pending→paid guard already makes it fire exactly once.
+
+export function buildNewOrderAlert(order: Order): { subject: string; html: string } {
+  const items = JSON.parse(order.items) as OrderItem[];
+  const currency = order.currency as Currency;
+
+  let shipping: string;
+  try {
+    const a = JSON.parse(order.shippingAddress) as {
+      line1: string;
+      line2?: string | null;
+      city: string;
+      country: string;
+      postalCode?: string | null;
+    };
+    shipping = [a.line1, a.line2, a.city, a.postalCode, a.country].filter(Boolean).join(", ");
+  } catch {
+    shipping = "(address unreadable)";
+  }
+
+  const total = formatPrice(order.totalAmount.toString(), currency);
+  const subject = `New paid order — ${total} from ${order.customerName}`;
+  const html = layout(`<p style="font-weight:bold">You have a new paid order.</p>
+      ${itemsTable(items, currency)}
+      <p style="font-weight:bold">Total: ${total}</p>
+      <p><strong>Customer:</strong> ${order.customerName}<br>
+         <strong>Email:</strong> ${order.customerEmail}<br>
+         <strong>Phone:</strong> ${order.customerPhone}</p>
+      <p><strong>Ship to:</strong> ${shipping}</p>
+      <p style="font-size:12px;color:#6b7a72">Order ${order.id} · paid via ${String(order.paymentMethod).toUpperCase()}</p>`);
+  return { subject, html };
+}
+
+/** Email the shop owner about a paid order. No-op if ORDER_NOTIFY_EMAIL is unset. */
+export async function sendNewOrderAlert(order: Order): Promise<void> {
+  const to = process.env.ORDER_NOTIFY_EMAIL;
+  if (!to) return;
+  try {
+    const { subject, html } = buildNewOrderAlert(order);
+    await send(to, subject, html);
+  } catch (err) {
+    console.error(`[email] order alert failed for ${order.id}`, err);
+  }
+}
