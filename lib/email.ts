@@ -1,4 +1,5 @@
 import { brand } from "@/config/brand";
+import { canonicalOrigin } from "@/lib/site-url";
 
 // Transactional email via a self-hosted Postal server (HTTP API).
 // Without POSTAL_URL + POSTAL_API_KEY (local dev), emails are logged
@@ -45,7 +46,7 @@ export function layout(body: string): string {
 }
 
 export async function sendVerificationEmail(to: string, token: string) {
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/verify?token=${token}`;
+  const url = `${canonicalOrigin()}/auth/verify?token=${token}`;
   await send(
     to,
     `Verify your ${brand.name} account`,
@@ -56,7 +57,7 @@ export async function sendVerificationEmail(to: string, token: string) {
 }
 
 export async function sendPasswordResetEmail(to: string, token: string) {
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password?token=${token}`;
+  const url = `${canonicalOrigin()}/auth/reset-password?token=${token}`;
   await send(
     to,
     `Reset your ${brand.name} password`,
@@ -67,7 +68,7 @@ export async function sendPasswordResetEmail(to: string, token: string) {
 }
 
 export async function sendMasterPromotionEmail(to: string, referralCode: string) {
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/register?recruiter=${referralCode}`;
+  const url = `${canonicalOrigin()}/auth/register?recruiter=${referralCode}`;
   await send(
     to,
     `You're now a ${brand.name} Master affiliate`,
@@ -80,7 +81,7 @@ export async function sendMasterPromotionEmail(to: string, referralCode: string)
 }
 
 export async function sendAffiliateInviteEmail(to: string, token: string) {
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/register?token=${token}`;
+  const url = `${canonicalOrigin()}/auth/register?token=${token}`;
   await send(
     to,
     `You're invited to the ${brand.name} affiliate programme`,

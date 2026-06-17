@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { canonicalOrigin } from "./site-url";
 
 // ─────────────────────────────────────────────────────────────────
 // NOWPayments integration for crypto payments (BTC, ETH, USDT, XMR)
@@ -19,16 +20,15 @@ export interface CreateCryptoPaymentInput {
   method: CryptoPaymentMethod;
   customerName: string;
   customerEmail: string;
+  // Origin of the storefront domain the customer is checking out on — used for
+  // the browser redirect (success/cancel) URLs so they return to the same site.
+  origin: string;
 }
 
 export interface CreateCryptoPaymentResult {
   paymentUrl: string;
   paymentRef: string;
   invoiceId: string;
-}
-
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 }
 
 function isMockMode(): boolean {
@@ -53,7 +53,7 @@ export async function createCryptoPayment(
   if (isMockMode()) {
     const mockInvoiceId = `np_${input.orderId.slice(0, 12)}`;
     return {
-      paymentUrl: `${siteUrl()}/dev/nowpayments?invoice=${mockInvoiceId}`,
+      paymentUrl: `${input.origin}/dev/nowpayments?invoice=${mockInvoiceId}`,
       paymentRef: mockInvoiceId,
       invoiceId: mockInvoiceId,
     };
@@ -72,9 +72,11 @@ export async function createCryptoPayment(
     price_currency: "usd",
     order_id: input.orderId,
     order_description: `Order #${input.orderId.slice(0, 8)}`,
-    ipn_callback_url: `${siteUrl()}/api/webhooks/nowpayments`,
-    success_url: `${siteUrl()}/order-confirmation/${input.orderId}`,
-    cancel_url: `${siteUrl()}/checkout?cancelled=1`,
+    // The webhook is server-to-server and must reach us regardless of which
+    // storefront domain the customer used — pin it to the canonical origin.
+    ipn_callback_url: `${canonicalOrigin()}/api/webhooks/nowpayments`,
+    success_url: `${input.origin}/order-confirmation/${input.orderId}`,
+    cancel_url: `${input.origin}/checkout?cancelled=1`,
     is_fixed_rate: false,
     is_fee_paid_by_user: false,
   };

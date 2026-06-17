@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { formatPrice, type Currency } from "@/config/brand";
+import { requestOrigin } from "@/lib/site-url";
 import { signNowpaymentsWebhook } from "@/lib/nowpayments";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ async function deliverWebhook(invoiceId: string, confirmed: boolean) {
     payment_status: confirmed ? "finished" : "failed",
   });
 
-  await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/webhooks/nowpayments`, {
+  await fetch(`${await requestOrigin()}/api/webhooks/nowpayments`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

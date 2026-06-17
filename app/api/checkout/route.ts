@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { CheckoutSchema, verifyOrigin } from "@/lib/validation";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
+import { originFromHeaders } from "@/lib/site-url";
 import { createCryptoPayment, type CryptoPaymentMethod } from "@/lib/nowpayments";
 import { priceFor, priceForVariant } from "@/lib/catalog";
 
@@ -109,6 +110,7 @@ export async function POST(req: Request) {
       method: input.paymentMethod as CryptoPaymentMethod,
       customerName: input.name,
       customerEmail: input.email,
+      origin: originFromHeaders(req.headers),
     });
 
     await prisma.order.update({

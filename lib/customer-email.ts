@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import type { Order } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { send, layout } from "@/lib/email";
+import { canonicalOrigin } from "@/lib/site-url";
 import { brand, formatPrice, type Currency } from "@/config/brand";
 
 // Customer-facing order emails. Every send is recorded in EmailLog first;
@@ -20,8 +21,10 @@ interface OrderItem {
   unitPriceUsd: string;
 }
 
+// Order + nudge emails are sent from the payment webhook and the cron job —
+// no request context — so they always use the stable canonical origin.
 function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  return canonicalOrigin();
 }
 
 /** HMAC-signed unsubscribe link — no token storage needed. Reuses JWT_SECRET. */

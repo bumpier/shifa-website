@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentAffiliate } from "@/lib/auth";
 import { countConfirmedSales, masterSalesThreshold, masterOverridePercent } from "@/lib/affiliate";
 import { tryDecrypt } from "@/lib/encrypt";
+import { requestOrigin } from "@/lib/site-url";
 import { formatPrice, formatUsdt, type Currency } from "@/config/brand";
 import { logoutAction } from "@/app/(store)/auth/actions";
 import { CopyButton } from "@/components/CopyButton";
@@ -73,9 +74,12 @@ export default async function DashboardPage() {
 
   const threshold = masterSalesThreshold();
   const overridePercent = masterOverridePercent();
-  const recruitLink = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/register?recruiter=${profile.referralCode}`;
+  // Referral/recruit links use the domain the affiliate is currently on, so the
+  // links they copy work on whichever storefront domain they signed in through.
+  const origin = await requestOrigin();
+  const recruitLink = `${origin}/auth/register?recruiter=${profile.referralCode}`;
 
-  const referralLink = `${process.env.NEXT_PUBLIC_SITE_URL}/?ref=${profile.referralCode}`;
+  const referralLink = `${origin}/?ref=${profile.referralCode}`;
   const minPayout = parseFloat(process.env.AFFILIATE_MIN_PAYOUT_USDT ?? "25");
   const pending = parseFloat(profile.pendingBalance.toString());
   const hasWallet = !!profile.usdtAddress;

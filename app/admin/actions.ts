@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { canonicalOrigin } from "@/lib/site-url";
 import bcrypt from "bcryptjs";
 import {
   createAdminSession,
@@ -246,7 +247,7 @@ export async function createInviteAction(
 
   revalidatePath("/admin/affiliates/invite");
   return {
-    success: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/register?token=${invite.token}`,
+    success: `${canonicalOrigin()}/auth/register?token=${invite.token}`,
   };
 }
 
