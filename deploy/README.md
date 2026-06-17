@@ -79,8 +79,8 @@ printf 'DATABASE_URL="file:../data/shifa.db"\n' > .env
 cat > .env.local <<'EOF'
 DATABASE_URL="file:../data/shifa.db"
 NEXT_PUBLIC_SITE_URL=https://PRIMARY_DOMAIN
-NOWPAYMENTS_API_KEY=
-NOWPAYMENTS_IPN_SECRET=
+HELEKET_MERCHANT_ID=
+HELEKET_PAYMENT_API_KEY=
 JWT_SECRET=REPLACE_WITH_openssl_rand_hex_32
 ADMIN_PASSWORD=REPLACE_WITH_A_STRONG_PASSWORD
 AFFILIATE_DEFAULT_COMMISSION=10
@@ -100,7 +100,7 @@ openssl rand -hex 32   # JWT_SECRET
 openssl rand -hex 32   # ENCRYPTION_KEY
 openssl rand -hex 32   # CRON_SECRET
 # Also set ADMIN_PASSWORD, NEXT_PUBLIC_SITE_URL, SENDING_DOMAIN.
-# Leave NOWPAYMENTS_* / POSTAL_* until their sections.
+# Leave HELEKET_* / POSTAL_* until their sections.
 
 npm ci
 npm run build

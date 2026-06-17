@@ -2,9 +2,8 @@
 
 ## Overview
 
-Crypto payments are integrated using **NOWPayments**, which provides:
+Crypto payments are integrated using **Heleket**, which provides:
 - Support for BTC, ETH, USDT, and **Monero (XMR)**
-- 200+ cryptocurrencies available
 - Automatic payment verification via webhooks
 - Simple API integration
 - Fast payouts to your wallet
@@ -17,7 +16,7 @@ Crypto payments are integrated using **NOWPayments**, which provides:
 
 ## Development (Local Testing)
 
-No configuration needed for local development. The system runs in **simulator mode** automatically:
+No configuration needed for local development. The system runs in **simulator mode** automatically when `HELEKET_MERCHANT_ID` is unset:
 
 1. Start the dev server: `npm run dev`
 2. Add items to cart and proceed to checkout
@@ -30,37 +29,38 @@ The simulator signs webhooks correctly, so you can test the full flow end-to-end
 
 ## Production Setup
 
-### Step 1: Create NOWPayments Account
+### Step 1: Create Heleket Account
 
-1. Go to https://nowpayments.io/
+1. Go to https://heleket.com/
 2. Sign up and verify your email
 3. Complete basic account setup
-4. Go to Settings → API Keys → Get API Key
-5. Go to Settings → Webhooks/IPN
-6. Copy both the API Key and IPN Secret
+4. Copy your **Merchant ID** (UUID) from your account dashboard
+5. Generate a **Payment API Key** from the API settings
 
 ### Step 2: Configure Environment Variables
 
 In your `.env.local` (or hosting platform's env vars), set:
 
 ```env
-NOWPAYMENTS_API_KEY=your_api_key_here
-NOWPAYMENTS_IPN_SECRET=your_ipn_secret_here
+HELEKET_MERCHANT_ID=your_merchant_uuid_here
+HELEKET_PAYMENT_API_KEY=your_payment_api_key_here
 ```
 
-### Step 3: Set IPN Webhook URL in NOWPayments
+`HELEKET_MERCHANT_ID` is the merchant UUID shown in your Heleket dashboard.
+`HELEKET_PAYMENT_API_KEY` is used to sign outbound API requests and to verify inbound webhook signatures.
 
-1. In NOWPayments dashboard, go to Settings → Webhooks/IPN
-2. Add a new IPN URL:
+### Step 3: Set Webhook URL in Heleket
+
+1. In Heleket dashboard, go to your webhook/IPN settings
+2. Add a new webhook URL:
    ```
-   https://yourdomain.com/api/webhooks/nowpayments
+   https://yourdomain.com/api/webhooks/heleket
    ```
-3. Set appropriate events (Payment Received, etc.)
-4. Save the webhook configuration
+3. Save the webhook configuration
 
 ### Step 4: Deploy
 
-Deploy your site with the environment variables set. Crypto payments will automatically use NOWPayments instead of the simulator.
+Deploy your site with the environment variables set. Crypto payments will automatically use Heleket instead of the simulator.
 
 ## How It Works
 
@@ -68,20 +68,20 @@ Deploy your site with the environment variables set. Crypto payments will automa
 
 1. **Checkout page** shows crypto options with 10% discount badge
 2. **User selects crypto** and amounts recalculate to show discount
-3. **Checkout API** 
+3. **Checkout API**
    - Validates the order
    - Applies 10% discount automatically
    - Converts order total to USD
-   - Creates a NOWPayments invoice
-4. **User redirected** to NOWPayments payment page
+   - Creates a Heleket payment at `api.heleket.com/v1/payment`
+4. **User redirected** to Heleket payment page
 5. **User pays** with their crypto wallet
-6. **IPN notification sent** when payment is received and confirmed
-7. **Order marked as paid** in database
-8. **Order confirmation** page shown to user
+6. **Webhook notification sent** when payment is received and confirmed
+7. **Webhook verified**: Heleket embeds `sign = md5(base64(json-body) + payment-key)` in the body; the handler removes `sign`, re-serialises, and recomputes to confirm authenticity
+8. **Order marked as paid** in database
+9. **Order confirmation** page shown to user
 
 ### Discount Logic
 
-- **Non-crypto payments**: No discount
 - **Crypto payments (BTC/ETH/USDT/XMR)**: **10% automatic discount** applied at checkout
 - Discount is calculated and shown to user before payment
 - Discount is applied server-side to prevent tampering
@@ -89,10 +89,10 @@ Deploy your site with the environment variables set. Crypto payments will automa
 ### Pricing
 
 For crypto payments:
-- Prices are converted to USD for the NOWPayments invoice
+- Prices are converted to USD for the Heleket payment
 - User sees prices in USD on checkout page
 - Customer receives their 10% discount on the USD amount
-- Payment received directly to your wallet (no intermediary fees)
+- Payment received directly to your wallet
 
 ## Supported Cryptocurrencies
 
@@ -109,7 +109,7 @@ Monero (XMR) provides true financial privacy with:
 - **Stealth addresses** - transactions can't be linked to public address
 - **Ring signatures** - sender identity is hidden in a ring of other transactions
 - **RingCT** - transaction amounts are hidden
-- **100% untraceable** - unlike Bitcoin which has transparent ledger
+- **100% untraceable** - unlike Bitcoin which has a transparent ledger
 
 Perfect for customers who value privacy and financial freedom.
 
@@ -137,12 +137,12 @@ When testing different payment scenarios:
 
 ## Troubleshooting
 
-### IPN Webhook Not Being Received
+### Webhook Not Being Received
 
 Check:
-1. IPN URL is correct in NOWPayments dashboard
-2. IPN Secret in `.env.local` matches NOWPayments dashboard exactly
-3. Network connectivity from NOWPayments to your server
+1. Webhook URL is correct in Heleket dashboard: `https://yourdomain.com/api/webhooks/heleket`
+2. `HELEKET_PAYMENT_API_KEY` in `.env.local` matches the key configured in Heleket exactly
+3. Network connectivity from Heleket to your server
 4. Server logs for webhook processing errors
 5. Your firewall/WAF isn't blocking the webhook
 
@@ -156,9 +156,9 @@ The amount is calculated server-side and cannot be tampered with by the client. 
 
 ### Simulator Not Working
 
-The simulator only works when `NOWPAYMENTS_API_KEY` is NOT set. If:
-1. You have `NOWPAYMENTS_API_KEY` in your env, remove it for local testing
-2. You get a 404 error, check that you're accessing `/dev/nowpayments?invoice=np_...`
+The simulator only works when `HELEKET_MERCHANT_ID` is NOT set. If:
+1. You have `HELEKET_MERCHANT_ID` in your env, remove it for local testing
+2. You get a 404 error, check that you're accessing `/dev/heleket?invoice=...`
 
 ### Payment Confirmed But Order Not Marked as Paid
 
@@ -172,7 +172,7 @@ Check:
 
 ### Regular Checks
 
-- Monitor NOWPayments dashboard for failed payments
+- Monitor Heleket dashboard for failed payments
 - Check server logs for webhook errors
 - Monitor order status updates
 - Track payment success rates
@@ -189,7 +189,7 @@ AND "createdAt" > NOW() - INTERVAL '1 day';
 
 ## Security Considerations
 
-1. **Webhook Signature Verification**: All webhooks are verified using HMAC-SHA512
+1. **Webhook Signature Verification**: Heleket signs webhooks with `sign = md5(base64(json-body) + payment-key)`, embedded in the webhook body itself (not a header). The handler removes `sign`, re-serialises the remaining fields, and recomputes to verify.
 2. **Server-Side Calculations**: Discount and pricing done server-side, never trust client amounts
 3. **Invoice ID Verification**: Order ID is verified in webhook before marking as paid
 4. **Rate Limiting**: Checkout endpoint has rate limiting to prevent abuse
@@ -197,22 +197,15 @@ AND "createdAt" > NOW() - INTERVAL '1 day';
 
 ## Advanced Configuration
 
-### Custom Payment Settings
-
-In `lib/nowpayments.ts`, you can customize:
-- `is_fixed_rate` - Whether exchange rates are fixed (default: false)
-- `is_fee_paid_by_user` - Whether customer pays NOWPayments fee (default: false)
-
 ### Webhook Event Handling
 
-Current implementation only processes:
-- `invoice_paid` - Payment confirmed
+Current implementation processes payment confirmation events.
 
 You can extend to handle:
-- `invoice_expired` - Payment timed out
-- `invoice_partially_paid` - Partial payment received
+- Expired payments
+- Partial payments
 
 ## Support
 
-For NOWPayments issues: https://nowpayments.io/support/
-For API documentation: https://documenter.getpostman.com/view/7907941/S1a32RSP
+For Heleket issues: https://heleket.com/
+For API documentation: https://heleket.com/

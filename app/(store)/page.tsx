@@ -33,7 +33,7 @@ const homepageFaqSchema = {
       name: "What payment methods does ShifaPK accept?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "ShifaPK accepts cryptocurrency payments — Bitcoin, Ethereum, USDT, and Monero — processed securely through NOWPayments, with a 10% discount on every crypto order.",
+        text: "ShifaPK accepts cryptocurrency payments — Bitcoin, Ethereum, USDT, and Monero — processed securely through Heleket, with a 10% discount on every crypto order.",
       },
     },
     {

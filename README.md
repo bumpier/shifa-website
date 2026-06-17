@@ -1,7 +1,7 @@
 # Shifa — white-label e-commerce storefront
 
 A self-contained e-commerce site for physical products with a built-in admin
-panel, an invite-only affiliate programme, and crypto payments via NOWPayments
+panel, an invite-only affiliate programme, and crypto payments via Heleket
 (Bitcoin, Ethereum, USDT, Monero — 10% discount on every order).
 
 Stack: Next.js 15 (App Router) · SQLite via Prisma · Tailwind CSS · Jose + bcrypt · Postal (self-hosted email).
@@ -40,22 +40,24 @@ palette (tints, shades, ink, paper) is derived automatically from
 Fonts are the one exception (`next/font` needs literal names): swap the two
 imports in `app/fonts.ts`.
 
-## Payments (NOWPayments — crypto only)
+## Payments (Heleket — crypto only)
 
 Payment is crypto-only: Bitcoin, Ethereum, USDT and Monero, each with an
-automatic 10% discount. `lib/nowpayments.ts` is the single integration point —
-it creates a hosted invoice and the customer is redirected to NOWPayments to
-pay. Set `NOWPAYMENTS_API_KEY` and `NOWPAYMENTS_IPN_SECRET` in `.env.local`.
+automatic 10% discount. `lib/heleket.ts` is the single integration point —
+it creates a hosted payment and the customer is redirected to Heleket to
+pay. Set `HELEKET_MERCHANT_ID` and `HELEKET_PAYMENT_API_KEY` in `.env.local`.
 
-Payments are confirmed by a signed IPN webhook at `/api/webhooks/nowpayments`
-(HMAC-SHA512), which marks the order paid, decrements stock and creates the
-affiliate commission — never client-side.
+Payments are confirmed by a signed webhook at `/api/webhooks/heleket`.
+Heleket embeds the signature as `sign = md5(base64(json-body) + payment-key)`
+directly in the webhook body (not a header); the handler removes `sign`,
+re-serialises, and recomputes to verify. On success the order is marked paid,
+stock decremented, and the affiliate commission created — never client-side.
 
-**Dev simulator:** with no `NOWPAYMENTS_API_KEY`, checkout redirects to
-`/dev/nowpayments`, a local stand-in for the hosted payment page that fires
+**Dev simulator:** with no `HELEKET_MERCHANT_ID`, checkout redirects to
+`/dev/heleket`, a local stand-in for the hosted payment page that fires
 correctly signed webhooks at the real endpoint, so the whole flow
 (checkout → webhook → paid order → commission) works locally. It returns 404
-whenever an API key is configured.
+whenever a merchant ID is configured.
 
 ## Repurchase nudge emails
 
@@ -100,7 +102,7 @@ Transactional emails (verification, password reset, order confirmation, shipped/
 |---|---|
 | `config/brand.ts` | All branding (white-label) |
 | `prisma/schema.prisma` | Database schema |
-| `lib/nowpayments.ts` | Crypto payment gateway integration |
+| `lib/heleket.ts` | Crypto payment gateway integration |
 | `lib/affiliate.ts` | Commission lifecycle |
 | `app/admin/*` | Admin panel |
 | `data/shifa.db` | SQLite database (never web-accessible) |

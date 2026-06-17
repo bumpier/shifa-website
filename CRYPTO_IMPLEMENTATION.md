@@ -12,15 +12,15 @@
 ### 2. **Files Created**
 
 #### Backend
-- `lib/nowpayments.ts` - NOWPayments API integration
-- `app/api/webhooks/nowpayments/route.ts` - Webhook handler for payment confirmations
-- `app/(store)/dev/nowpayments/page.tsx` - Payment simulator for testing
+- `lib/heleket.ts` - Heleket API integration
+- `app/api/webhooks/heleket/route.ts` - Webhook handler for payment confirmations
+- `app/(store)/dev/heleket/page.tsx` - Payment simulator for testing
 
 #### Frontend
 - Updated `app/(store)/checkout/page.tsx` - New crypto payment UI with discount display
 
 #### Configuration
-- `.env.example` - Added NOWPayments env vars
+- `.env.example` - Added Heleket env vars
 - `CRYPTO_SETUP.md` - Complete setup guide
 - `CRYPTO_QUICKSTART.md` - Quick start guide
 - `CRYPTO_IMPLEMENTATION.md` - This file
@@ -49,15 +49,15 @@ Server calculates:
   - Converts to USD for crypto
   - Applies 10% discount (multiply by 0.9)
     ↓
-Creates NOWPayments invoice
+Creates Heleket payment
     ↓
 Redirects user to payment page
     ↓
 User sends crypto
     ↓
-NOWPayments confirms payment
+Heleket confirms payment
     ↓
-IPN webhook received & verified
+Webhook received & signature verified
     ↓
 Order marked as "paid"
     ↓
@@ -69,36 +69,34 @@ User redirected to confirmation
 ✅ **10% Crypto Discount** - Automatically applied server-side
 ✅ **Multi-cryptocurrency Support** - BTC, ETH, USDT, XMR
 ✅ **Private Monero Payments** - Untraceable transactions for privacy-conscious customers
-✅ **Secure Webhooks** - HMAC-SHA512 signature verification
+✅ **Secure Webhooks** - Signature verified via `md5(base64(body) + payment-key)` in the webhook body
 ✅ **Dev Testing** - Full simulator for testing without API keys
 ✅ **Price Conversion** - Automatic USD conversion for invoice pricing
 ✅ **Server-Side Validation** - No client-side price manipulation possible
 
-## Why NOWPayments?
+## Why Heleket?
 
-- **200+ cryptocurrencies** supported
+- **Multiple cryptocurrencies** supported including Monero
 - **Monero support** for privacy-conscious customers
 - **Simple integration** - Easy API and webhooks
-- **Lower fees** - 0.5% to 2% depending on plan
-- **No KYC** to get started
-- **Fast payouts** - Direct to your wallet
+- **No intermediary** - payouts direct to your wallet
 
 ## Environment Setup
 
 ### Development
-No additional setup needed! Leave these empty:
+No additional setup needed! Leave `HELEKET_MERCHANT_ID` empty:
 ```env
-NOWPAYMENTS_API_KEY=
-NOWPAYMENTS_IPN_SECRET=
+HELEKET_MERCHANT_ID=
+HELEKET_PAYMENT_API_KEY=
 ```
 
-The system automatically uses a simulator.
+The system automatically uses the local simulator when `HELEKET_MERCHANT_ID` is unset.
 
 ### Production
-Get credentials from https://nowpayments.io/ and set:
+Get credentials from https://heleket.com/ and set:
 ```env
-NOWPAYMENTS_API_KEY=your_key_here
-NOWPAYMENTS_IPN_SECRET=your_secret_here
+HELEKET_MERCHANT_ID=your_merchant_uuid_here
+HELEKET_PAYMENT_API_KEY=your_payment_api_key_here
 ```
 
 ## Testing the Implementation
@@ -144,7 +142,7 @@ NOWPAYMENTS_IPN_SECRET=your_secret_here
 
 No schema changes required. Uses existing fields:
 - `Order.paymentMethod` - Stores "btc", "eth", "usdt", or "xmr"
-- `Order.paymentRef` - Stores the NOWPayments invoice/payment ID
+- `Order.paymentRef` - Stores the Heleket payment ID
 - `Order.notes` - Stores crypto payment metadata
 - `Order.totalAmount` - Stores discounted amount
 - `Order.currency` - Stores original user currency
@@ -155,24 +153,24 @@ No schema changes required. Uses existing fields:
 Creates a new order and returns payment URL.
 - Accepts crypto payment methods (including XMR)
 - Applies 10% discount server-side
-- Returns NOWPayments hosted checkout URL
+- Returns Heleket hosted checkout URL
 
-### POST `/api/webhooks/nowpayments`
-Receives payment confirmation IPN notifications.
-- Verifies HMAC-SHA512 signature
+### POST `/api/webhooks/heleket`
+Receives payment confirmation notifications.
+- Verifies signature: `sign = md5(base64(json-body) + payment-key)`, embedded in the webhook body
 - Updates order status to "paid"
-- Called by NOWPayments when payment confirmed
+- Called by Heleket when payment is confirmed
 
-### GET `/dev/nowpayments?invoice=np_...`
+### GET `/dev/heleket?invoice=...`
 Development payment simulator.
-- Only active when `NOWPAYMENTS_API_KEY` is empty
+- Only active when `HELEKET_MERCHANT_ID` is empty/unset
 - Simulates successful or failed payments
-- Sends properly signed IPN notifications
-- Useful for E2E testing without NOWPayments account
+- Sends properly signed webhook notifications
+- Useful for E2E testing without a Heleket account
 
 ## Security Considerations
 
-✅ Webhook signature verification using HMAC-SHA512
+✅ Webhook signature verification (`md5(base64(body) + payment-key)` in the body)
 ✅ Server-side discount calculation (client can't cheat)
 ✅ Order ID validation in webhooks
 ✅ Rate limiting on checkout endpoint
@@ -180,14 +178,14 @@ Development payment simulator.
 
 ## Monero Integration Details
 
-Monero support is fully implemented via NOWPayments:
+Monero support is fully implemented via Heleket:
 
 1. **User selects XMR** → Checkout shows "Monero" with 🔐 badge
 2. **10% discount applied** → Same as other cryptos
-3. **Invoice created** → NOWPayments handles XMR conversion
+3. **Payment created** → Heleket handles XMR conversion
 4. **User scans QR code** → Sends XMR from private wallet
 5. **Transaction confirmed** → Private, untraceable on-chain
-6. **Order marked paid** → Webhook received from NOWPayments
+6. **Order marked paid** → Webhook received from Heleket
 
 ### Monero Privacy Features
 
@@ -205,19 +203,19 @@ Perfect for:
 
 ```
 lib/
-└── nowpayments.ts                ← Crypto payment handler (sole payment integration)
+└── heleket.ts                    ← Crypto payment handler (sole payment integration)
 
 app/
 ├── api/
 │   ├── checkout/route.ts          ← Crypto-only checkout
 │   └── webhooks/
-│       └── nowpayments/           ← Webhook handler (marks paid, stock, commission)
+│       └── heleket/               ← Webhook handler (marks paid, stock, commission)
 │           └── route.ts
 │
 ├── (store)/
 │   ├── checkout/page.tsx          ← Crypto-only payment UI
 │   └── dev/
-│       └── nowpayments/           ← Dev simulator
+│       └── heleket/               ← Dev simulator
 │           └── page.tsx
 
 config/
@@ -226,26 +224,15 @@ config/
 
 ## Deployment Checklist
 
-- [ ] Set up NOWPayments account (https://nowpayments.io/)
-- [ ] Copy API key and IPN secret
+- [ ] Set up Heleket account (https://heleket.com/)
+- [ ] Copy Merchant ID and Payment API Key
 - [ ] Set environment variables in deployment platform
-- [ ] Configure IPN webhook URL in NOWPayments dashboard
-- [ ] Test webhook URL is accessible from NOWPayments
+- [ ] Configure webhook URL in Heleket dashboard: `https://yourdomain.com/api/webhooks/heleket`
+- [ ] Test webhook URL is accessible from Heleket
 - [ ] Run full checkout flow with test payment
-- [ ] Verify webhook is received and signed correctly
+- [ ] Verify webhook is received and signature verified correctly
 - [ ] Monitor logs for webhook processing errors
 - [ ] Test order confirmation page
 - [ ] Test all 4 crypto options (BTC, ETH, USDT, XMR)
 - [ ] Announce new crypto payment options to customers
 - [ ] Highlight Monero privacy benefits
-
-## Migration Notes
-
-If previously using Coinbase Commerce:
-- Replace `lib/coinbase-commerce.ts` with `lib/nowpayments.ts`
-- Update webhook handler from `/api/webhooks/coinbase-commerce` to `/api/webhooks/nowpayments`
-- Update `.env` variables from `COINBASE_*` to `NOWPAYMENTS_*`
-- Update simulator from `/dev/coinbase-commerce` to `/dev/nowpayments`
-- Add XMR support (now available!)
-
-The checkout flow remains the same - just different payment processor.
