@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { CheckoutSchema, verifyOrigin } from "@/lib/validation";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { originFromHeaders } from "@/lib/site-url";
-import { createCryptoPayment, type CryptoPaymentMethod } from "@/lib/nowpayments";
+import { createCryptoPayment, type CryptoPaymentMethod } from "@/lib/heleket";
 import { priceFor, priceForVariant } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";

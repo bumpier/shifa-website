@@ -17,7 +17,7 @@ const securityHeaders = [
       "font-src 'self' fonts.gstatic.com",
       "img-src 'self' data: blob:",
       // Crypto checkout redirects the browser (top-level navigation) to the
-      // NOWPayments hosted page, so no extra connect/frame hosts are needed.
+      // Heleket hosted page, so no extra connect/frame hosts are needed.
       "connect-src 'self'",
       "form-action 'self'",
     ].join('; '),
