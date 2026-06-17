@@ -1,0 +1,21 @@
+[Unit]
+Description=Shifa Next.js storefront
+After=network.target
+
+[Service]
+Type=simple
+User=shifa
+Group=shifa
+WorkingDirectory=/srv/shifa
+EnvironmentFile=/srv/shifa/.env.local
+Environment=NODE_ENV=production
+# Bind to localhost only — nginx is the sole public entry point.
+ExecStart=/usr/bin/npm run start -- -H 127.0.0.1 -p 3000
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
