@@ -15,6 +15,7 @@
 - Payment amount sent to the gateway is `subtotalUsd.toFixed(2)` with currency `"USD"`.
 - Mock/dev mode is active when `HELEKET_MERCHANT_ID` is unset (mirrors the old `NOWPAYMENTS_API_KEY` gate).
 - One key, `HELEKET_PAYMENT_API_KEY`, signs outbound requests AND verifies inbound webhooks.
+- **Multi-domain URL contract** (introduced by the multi-domain hosting feature in `lib/site-url.ts`, after the spec was written): browser-redirect URLs use the visitor's own origin; server-to-server URLs use the stable canonical origin. `createCryptoPayment` takes an `origin: string` (the storefront domain the customer is on, derived in checkout via `originFromHeaders(req.headers)`). `url_success`/`url_return` and the mock payment URL use `input.origin`; the webhook `url_callback` uses `canonicalOrigin()` imported from `./site-url`. Do NOT reintroduce a `NEXT_PUBLIC_SITE_URL`-based `siteUrl()` helper in `lib/heleket.ts`. The dev simulator's self-fetch to the webhook uses `requestOrigin()` from `@/lib/site-url`.
 - Successful webhook statuses are exactly `"paid"` and `"paid_over"`. All other statuses are acknowledged with HTTP 200 and do nothing.
 - `paymentRef` is set to the Heleket payment `uuid`.
 - Heleket signature scheme: `sign = md5( base64( canonicalJson(data) ) + HELEKET_PAYMENT_API_KEY )`, where `canonicalJson` is `JSON.stringify(data)` with forward slashes escaped (`/` → `\/`) to match PHP's `json_encode`. The webhook `sign` is in the request body (no header) and is excluded from the signed `data`.
@@ -47,10 +48,10 @@
 - Test: `scripts/smoke-heleket.ts` (signature section only in this task)
 
 **Interfaces:**
-- Consumes: `process.env.HELEKET_MERCHANT_ID`, `process.env.HELEKET_PAYMENT_API_KEY`, `process.env.NEXT_PUBLIC_SITE_URL`.
+- Consumes: `process.env.HELEKET_MERCHANT_ID`, `process.env.HELEKET_PAYMENT_API_KEY`, and `canonicalOrigin()` from `@/lib/site-url`.
 - Produces:
   - `type CryptoPaymentMethod = "btc" | "eth" | "usdt" | "xmr"`
-  - `interface CreateCryptoPaymentInput { orderId: string; amount: string; method: CryptoPaymentMethod; customerName: string; customerEmail: string; }`
+  - `interface CreateCryptoPaymentInput { orderId: string; amount: string; method: CryptoPaymentMethod; customerName: string; customerEmail: string; origin: string; }`
   - `interface CreateCryptoPaymentResult { paymentUrl: string; paymentRef: string; invoiceId: string; }`
   - `function createCryptoPayment(input: CreateCryptoPaymentInput): Promise<CreateCryptoPaymentResult>`
   - `function verifyHeleketSignature(parsed: Record<string, unknown>, sign: string | undefined): boolean`
@@ -103,6 +104,7 @@ Expected: FAIL — `Cannot find module '../lib/heleket'` (the client does not ex
 
 ```ts
 import crypto from "crypto";
+import { canonicalOrigin } from "./site-url";
 
 // ─────────────────────────────────────────────────────────────────
 // Heleket integration for crypto payments (BTC, ETH, USDT, XMR)
@@ -124,16 +126,15 @@ export interface CreateCryptoPaymentInput {
   method: CryptoPaymentMethod;
   customerName: string;
   customerEmail: string;
+  // Origin of the storefront domain the customer is on — used for the browser
+  // redirect (success/cancel) URLs so they return to the same site.
+  origin: string;
 }
 
 export interface CreateCryptoPaymentResult {
   paymentUrl: string;
   paymentRef: string;
   invoiceId: string;
-}
-
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 }
 
 function isMockMode(): boolean {
@@ -162,7 +163,7 @@ export async function createCryptoPayment(
   if (isMockMode()) {
     const mockInvoiceId = `hl_${input.orderId.slice(0, 12)}`;
     return {
-      paymentUrl: `${siteUrl()}/dev/heleket?invoice=${mockInvoiceId}`,
+      paymentUrl: `${input.origin}/dev/heleket?invoice=${mockInvoiceId}`,
       paymentRef: mockInvoiceId,
       invoiceId: mockInvoiceId,
     };
@@ -178,9 +179,12 @@ export async function createCryptoPayment(
     amount: input.amount,
     currency: "USD",
     order_id: input.orderId,
-    url_callback: `${siteUrl()}/api/webhooks/heleket`,
-    url_return: `${siteUrl()}/checkout?cancelled=1`,
-    url_success: `${siteUrl()}/order-confirmation/${input.orderId}`,
+    // Server-to-server callback must reach us regardless of which storefront
+    // domain the customer used — pin it to the stable canonical origin.
+    url_callback: `${canonicalOrigin()}/api/webhooks/heleket`,
+    // Browser redirects return the customer to the domain they checked out on.
+    url_return: `${input.origin}/checkout?cancelled=1`,
+    url_success: `${input.origin}/order-confirmation/${input.orderId}`,
   };
 
   // The signed string MUST be the exact body we send.
@@ -540,7 +544,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Create: `app/(store)/dev/heleket/page.tsx`
 
 **Interfaces:**
-- Consumes: `signHeleketWebhook` (Task 1), the `/api/webhooks/heleket` route (Task 2), `prisma`, `formatPrice`/`Currency` from `@/config/brand`.
+- Consumes: `signHeleketWebhook` (Task 1), the `/api/webhooks/heleket` route (Task 2), `prisma`, `formatPrice`/`Currency` from `@/config/brand`, `requestOrigin` from `@/lib/site-url`.
 - Produces: a page at `/dev/heleket?invoice=hl_<id>` (active only when `HELEKET_MERCHANT_ID` is unset) with "Simulate successful payment" / "Simulate failed payment" actions.
 
 - [ ] **Step 1: Implement the simulator page**
@@ -551,6 +555,7 @@ Create `app/(store)/dev/heleket/page.tsx`:
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { formatPrice, type Currency } from "@/config/brand";
+import { requestOrigin } from "@/lib/site-url";
 import { signHeleketWebhook } from "@/lib/heleket";
 
 export const dynamic = "force-dynamic";
@@ -578,7 +583,7 @@ async function deliverWebhook(invoiceId: string, confirmed: boolean) {
   };
   const body = JSON.stringify({ ...data, sign: signHeleketWebhook(data) });
 
-  await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/webhooks/heleket`, {
+  await fetch(`${await requestOrigin()}/api/webhooks/heleket`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body,
@@ -673,7 +678,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ## Task 4: Switch checkout to Heleket and remove NOWPayments
 
 **Files:**
-- Modify: `app/api/checkout/route.ts:7`
+- Modify: `app/api/checkout/route.ts` (the `createCryptoPayment` import line, ~line 8)
 - Modify: `.env.example:9-13`
 - Modify: `next.config.js:19-20` (comment)
 - Delete: `lib/nowpayments.ts`, `app/api/webhooks/nowpayments/route.ts`, `app/(store)/dev/nowpayments/page.tsx`
@@ -683,7 +688,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 - [ ] **Step 1: Swap the checkout import**
 
-In `app/api/checkout/route.ts`, change line 7 from:
+In `app/api/checkout/route.ts`, change the `createCryptoPayment` import (currently around line 8) from:
 
 ```ts
 import { createCryptoPayment, type CryptoPaymentMethod } from "@/lib/nowpayments";
@@ -695,7 +700,7 @@ to:
 import { createCryptoPayment, type CryptoPaymentMethod } from "@/lib/heleket";
 ```
 
-(No other changes — the call site, `amount: subtotalUsd.toFixed(2)`, and `notes` string are unchanged.)
+No other changes. The call site already passes `origin: originFromHeaders(req.headers)` (added by the multi-domain feature), plus `amount: subtotalUsd.toFixed(2)` and the `notes` string — all unchanged and all compatible with `lib/heleket.ts`'s `CreateCryptoPaymentInput`.
 
 - [ ] **Step 2: Delete the NOWPayments files**
 
