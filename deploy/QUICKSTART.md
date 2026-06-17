@@ -1,8 +1,14 @@
 # Shifa — full server setup, step by step
 
-Do these in order on a **fresh Ubuntu 22.04 / 24.04 server**. Copy-paste each
-numbered block. Lines marked **⏸ BY HAND** are the only ones you do yourself
-(set DNS, paste secrets, click in a web UI) — everything else is paste-and-go.
+Do these in order on a **fresh Ubuntu 22.04 / 24.04 server**. You log in over
+SSH (e.g. with **Terminus**) as **root**, using your password — and you run
+**everything in this guide as root**. Just copy-paste each numbered block.
+
+Lines marked **⏸ BY HAND** are the only ones you do yourself (set DNS, paste
+secrets, click in a web UI). Everything else is paste-and-go.
+
+The website runs under a locked-down **`shifa`** user that the setup creates for
+you — it can't be logged into from outside, and you never switch to it.
 
 Values are already filled in for this deployment:
 
@@ -10,7 +16,6 @@ Values are already filled in for this deployment:
 - Email host: **mail.shifaops.com** · sends from **shifaops.com**
 - Admin email: **admin@shifaops.com**
 - Server IP: **217.60.195.165**
-- Linux user: **shifa** · app folder: **/srv/shifa**
 
 Three parts: **A) the website**, **B) email (Postal)**, **C) backups & day-to-day**.
 Part A is enough to go live; email can come after.
@@ -34,33 +39,32 @@ Then ask your VPS provider to set **reverse DNS (PTR)** for `217.60.195.165` →
 
 Check it worked: `dig +short shifalabsasia.com` should print `217.60.195.165`.
 
-## 1. Harden the server — run as **root**
-
-⏸ BY HAND: replace `PASTE-YOUR-PUBLIC-KEY` with **your** SSH public key
-(run `cat ~/.ssh/id_ed25519.pub` on your own laptop and copy the line).
+## 1. Harden the server + create the app user
 
 ```bash
 apt-get update && apt-get install -y git
 git clone https://github.com/bumpier/shifa-website.git /srv/shifa
-APP_USER=shifa \
-PUBKEY="ssh-ed25519 AAAA...PASTE-YOUR-PUBLIC-KEY..." \
-bash /srv/shifa/deploy/scripts/provision-base.sh
-chown -R shifa:shifa /srv/shifa
+APP_USER=shifa bash /srv/shifa/deploy/scripts/provision-base.sh
 ```
 
-This creates the `shifa` user, locks down SSH (key-only, no root login), and turns
-on the firewall (ports 22, 80, 443, 25). **Now open a new SSH session as `shifa`**
-and keep this root session open until that works. Do everything below as `shifa`.
+This turns on the firewall (ports 22, 80, 443, 25), enables fail2ban + automatic
+security updates, and creates the locked-down `shifa` user. Your SSH/Terminus
+login is left exactly as it is — you stay logged in as root.
 
-## 2. Install Node, nginx, and tools — as **shifa**
+⏸ BY HAND: make sure root has a **strong password** (it's your only way in):
+```bash
+passwd
+```
+
+## 2. Install Node, nginx, and tools
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs build-essential nginx certbot python3-certbot-nginx sqlite3
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt-get install -y nodejs build-essential nginx certbot python3-certbot-nginx sqlite3
 node -v   # expect v20.x
 ```
 
-## 3. Create the config + secrets — as **shifa**
+## 3. Create the config + secrets
 
 ```bash
 cd /srv/shifa
@@ -98,22 +102,23 @@ openssl rand -hex 32   # -> CRON_SECRET    (PASTE_SECRET_3)
   (the merchant ID is already filled in).
 - (`POSTAL_URL` / `POSTAL_API_KEY` stay empty until Part B.)
 
-## 4. Build the app + database — as **shifa**
+## 4. Build the app + database
 
 ```bash
 cd /srv/shifa
 npm ci
 npm run build
 npx prisma migrate deploy
-npx prisma db seed     # optional: adds 4 sample products
+npx prisma db seed                 # optional: adds 4 sample products
+chown -R shifa:shifa /srv/shifa    # hand the files to the app user
 ```
 
-## 5. Run the app as a service — as **shifa**
+## 5. Run the app as a service
 
 ```bash
-sudo cp /srv/shifa/deploy/systemd/shifa.service /etc/systemd/system/shifa.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now shifa
+cp /srv/shifa/deploy/systemd/shifa.service /etc/systemd/system/shifa.service
+systemctl daemon-reload
+systemctl enable --now shifa
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000   # expect 200
 ```
 
@@ -123,21 +128,21 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000   # expect 200
 dig +short shifalabsasia.com        # must print 217.60.195.165 before step 7
 ```
 
-## 7. Turn on nginx + HTTPS — as **shifa**
+## 7. Turn on nginx + HTTPS
 
 The website domain is already set in the config; just install it and get a certificate.
 
 ```bash
-sudo cp /srv/shifa/deploy/nginx/shifa.conf /etc/nginx/sites-available/shifa.conf
-sudo ln -sf /etc/nginx/sites-available/shifa.conf /etc/nginx/sites-enabled/shifa.conf
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t && sudo systemctl reload nginx
+cp /srv/shifa/deploy/nginx/shifa.conf /etc/nginx/sites-available/shifa.conf
+ln -sf /etc/nginx/sites-available/shifa.conf /etc/nginx/sites-enabled/shifa.conf
+rm -f /etc/nginx/sites-enabled/default
+nginx -t && systemctl reload nginx
 
-sudo certbot --nginx --cert-name shifa --redirect --non-interactive \
+certbot --nginx --cert-name shifa --redirect --non-interactive \
   --agree-tos -m admin@shifaops.com \
   -d shifalabsasia.com -d www.shifalabsasia.com
 
-sudo systemctl reload nginx
+systemctl reload nginx
 curl -s -o /dev/null -w '%{http_code}\n' https://shifalabsasia.com   # expect 200
 ```
 
@@ -149,19 +154,19 @@ curl -s -o /dev/null -w '%{http_code}\n' https://shifalabsasia.com   # expect 20
 
 This sets up a self-hosted email server so the site can send order confirmations,
 password resets, and affiliate emails. It produces the two values `POSTAL_URL`
-and `POSTAL_API_KEY` that you put back into `.env.local`. Run all of this as **shifa**.
+and `POSTAL_API_KEY` that you put back into `.env.local`.
 
 ## 8. Install Docker, MariaDB, and the Postal tool
 
 ```bash
-sudo apt-get install -y git curl jq
+apt-get install -y git curl jq
 
 # Installs Docker + a MariaDB database (uses a default password — fine to start).
-curl https://raw.githubusercontent.com/postalserver/install/main/prerequisites/install-ubuntu.v3.sh | sudo bash
+curl https://raw.githubusercontent.com/postalserver/install/main/prerequisites/install-ubuntu.v3.sh | bash
 
 # Install the "postal" command
-sudo git clone https://github.com/postalserver/install /opt/postal/install
-sudo ln -s /opt/postal/install/bin/postal /usr/bin/postal
+git clone https://github.com/postalserver/install /opt/postal/install
+ln -s /opt/postal/install/bin/postal /usr/bin/postal
 ```
 
 ## 9. Start Postal
@@ -169,8 +174,8 @@ sudo ln -s /opt/postal/install/bin/postal /usr/bin/postal
 ```bash
 postal bootstrap mail.shifaops.com
 ```
-⏸ BY HAND: `sudo nano /opt/postal/config/postal.yml` — set the database password
-to match the one from step 8 and confirm the web host is `mail.shifaops.com`. Save.
+⏸ BY HAND: `nano /opt/postal/config/postal.yml` — set the database password to
+match the one from step 8 and confirm the web host is `mail.shifaops.com`. Save.
 
 ```bash
 postal initialize        # set up the database
@@ -181,7 +186,7 @@ postal start             # start it
 ## 10. Put HTTPS in front of the mail server
 
 ```bash
-sudo tee /etc/nginx/sites-available/postal.conf >/dev/null <<'NGINX'
+tee /etc/nginx/sites-available/postal.conf >/dev/null <<'NGINX'
 server {
     listen 80;
     server_name mail.shifaops.com;
@@ -194,14 +199,14 @@ server {
     }
 }
 NGINX
-sudo ln -sf /etc/nginx/sites-available/postal.conf /etc/nginx/sites-enabled/postal.conf
-sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx --cert-name postal -d mail.shifaops.com --redirect \
+ln -sf /etc/nginx/sites-available/postal.conf /etc/nginx/sites-enabled/postal.conf
+nginx -t && systemctl reload nginx
+certbot --nginx --cert-name postal -d mail.shifaops.com --redirect \
   --non-interactive --agree-tos -m admin@shifaops.com
 ```
 
 Open **https://mail.shifaops.com** in a browser and log in with the admin user
-from step 9. (If the page doesn't load, run `sudo docker ps` and make sure Postal's
+from step 9. (If the page doesn't load, run `docker ps` and make sure Postal's
 web container is on port 5000; adjust the `proxy_pass` port to match.)
 
 ## 11. ⏸ Set up your sending domain (in the Postal web UI)
@@ -221,7 +226,7 @@ web container is on port 5000; adjust the `proxy_pass` port to match.)
 In the Mail Server: **Credentials → New Credential → type "API"**, name it
 "website", and save. Postal shows a key string — that is your **`POSTAL_API_KEY`**.
 
-## 13. Connect email to the website — as **shifa**
+## 13. Connect email to the website
 
 ⏸ BY HAND: `nano /srv/shifa/.env.local` and set:
 ```
@@ -230,7 +235,7 @@ POSTAL_API_KEY=<the API key from step 12>
 ```
 Then restart and test:
 ```bash
-sudo systemctl restart shifa
+systemctl restart shifa
 ```
 Trigger a test email (e.g. request a password reset on the site, or send a test
 from Postal) to a https://www.mail-tester.com address and check that **SPF, DKIM,
@@ -240,10 +245,10 @@ and DMARC all pass**. New servers land in spam at first — send slowly to warm 
 
 # PART C — Backups & day-to-day
 
-## 14. Nightly backups + scheduled jobs — as **shifa**
+## 14. Nightly backups + scheduled jobs
 
 ```bash
-sudo apt-get install -y rclone
+apt-get install -y rclone
 rclone config        # ⏸ create a remote named exactly: offsite (S3 / Backblaze B2 / etc.)
 crontab -e           # ⏸ paste the two lines below, then save
 ```
@@ -257,7 +262,7 @@ Test the backup once: `bash /srv/shifa/deploy/scripts/backup.sh`
 
 **Add a backup/spare website domain** (point its DNS at `217.60.195.165` first):
 ```bash
-sudo ADMIN_EMAIL=admin@shifaops.com bash /srv/shifa/deploy/scripts/add-domain.sh NEWDOMAIN.com
+ADMIN_EMAIL=admin@shifaops.com bash /srv/shifa/deploy/scripts/add-domain.sh NEWDOMAIN.com
 ```
 
 **Deploy a code update:**
@@ -265,7 +270,7 @@ sudo ADMIN_EMAIL=admin@shifaops.com bash /srv/shifa/deploy/scripts/add-domain.sh
 bash /srv/shifa/deploy/scripts/deploy.sh
 ```
 
-**Restart the app:** `sudo systemctl restart shifa`
+**Restart the app:** `systemctl restart shifa`
 **Watch the logs:** `journalctl -u shifa -f`
 
 ---
