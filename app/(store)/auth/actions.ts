@@ -11,7 +11,7 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import { uniqueReferralCode } from "@/lib/affiliate";
-import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email";
+import { sendPasswordResetEmail, sendVerificationEmail, emailEnabled } from "@/lib/email";
 import {
   ForgotPasswordSchema,
   LoginSchema,
@@ -152,6 +152,11 @@ export async function forgotPasswordAction(
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
+  // Email disabled (no Postal) → password reset is unavailable. Return the same
+  // generic message so this endpoint leaks nothing if POSTed while the UI is hidden.
+  if (!emailEnabled()) {
+    return { success: "If that email is registered, a reset link is on its way." };
+  }
   if (!rateLimit(`forgot:${await ip()}`, 5, 60_000)) {
     return { error: "Too many attempts. Please wait a minute." };
   }
