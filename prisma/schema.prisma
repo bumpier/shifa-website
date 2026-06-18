@@ -38,8 +38,9 @@ model Order {
   currency        String
   totalAmount     Decimal
   subtotalUsd     Decimal  @default(0) // commission basis (USD ≈ USDT), computed at order time
-  paymentRef      String? // crypto payment gateway invoice/payment id
-  paymentMethod   String // btc | eth | usdt | xmr
+  paymentRef      String? // gateway invoice / payment id (Heleket uuid or Stripe session/intent)
+  paymentProvider String? // stripe | heleket — which gateway handled this order
+  paymentMethod   String // card | btc | eth | usdt | xmr
   refCode         String? // affiliate referral code captured from cookie
   notes           String?
   createdAt       DateTime @default(now())
