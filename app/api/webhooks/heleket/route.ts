@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 import { verifyHeleketSignature } from "@/lib/heleket";
-import { fulfillPaidOrder } from "@/lib/payments/fulfillment";
+import { createReferralForPaidOrder } from "@/lib/affiliate";
+import { sendOrderConfirmationEmail, sendNewOrderAlert } from "@/lib/customer-email";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +43,39 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing order_id" }, { status: 400 });
     }
 
-    await fulfillPaidOrder(orderId, { paymentRef: data.uuid, provider: "heleket" });
+    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      // Acknowledge so the gateway stops retrying an unknown reference
+      return NextResponse.json({ ok: true });
+    }
+
+    // Only the pending → paid transition does work; webhook retries are no-ops
+    if (order.status === "pending") {
+      await prisma.$transaction(async (tx) => {
+        await tx.order.update({
+          where: { id: orderId },
+          data: {
+            status: "paid",
+            paymentRef: data.uuid ?? order.paymentRef,
+          },
+        });
+        // Decrement stock now that payment is confirmed
+        const items = JSON.parse(order.items) as { productId: string; qty: number }[];
+        for (const item of items) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: item.qty } },
+          });
+        }
+      });
+      // Commission records are created ONLY here — webhook-driven
+      await createReferralForPaidOrder(orderId);
+      const paidOrder = await prisma.order.findUnique({ where: { id: orderId } });
+      if (paidOrder) {
+        void sendOrderConfirmationEmail(paidOrder); // to the customer
+        void sendNewOrderAlert(paidOrder); // to the shop owner (ORDER_NOTIFY_EMAIL)
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
