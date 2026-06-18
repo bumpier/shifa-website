@@ -13,15 +13,17 @@ export async function fulfillPaidOrder(
   if (!order) return { alreadyPaid: false }; // unknown order — caller acknowledges
   if (order.status !== "pending") return { alreadyPaid: true };
 
-  await prisma.$transaction(async (tx) => {
-    await tx.order.update({
-      where: { id: orderId },
+  const claimed = await prisma.$transaction(async (tx) => {
+    // Atomic claim: only the delivery that flips pending→paid proceeds.
+    const { count } = await tx.order.updateMany({
+      where: { id: orderId, status: "pending" },
       data: {
         status: "paid",
         paymentRef: opts.paymentRef ?? order.paymentRef,
         paymentProvider: opts.provider,
       },
     });
+    if (count === 0) return false; // another concurrent delivery already claimed it
     // Decrement stock now that payment is confirmed.
     const items = JSON.parse(order.items) as { productId: string; qty: number }[];
     for (const item of items) {
@@ -30,7 +32,10 @@ export async function fulfillPaidOrder(
         data: { stock: { decrement: item.qty } },
       });
     }
+    return true;
   });
+
+  if (!claimed) return { alreadyPaid: true };
 
   // Commission records are created ONLY here — webhook-driven.
   await createReferralForPaidOrder(orderId);
