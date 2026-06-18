@@ -7,15 +7,29 @@ import { canonicalOrigin } from "@/lib/site-url";
 
 const from = process.env.EMAIL_FROM ?? `${brand.name} <noreply@example.com>`;
 
+/**
+ * Email is enabled only when a Postal server is fully configured. With either
+ * var blank the app runs normally and email-dependent flows (password reset)
+ * are hidden. No mail host is ever assumed as a default.
+ */
+export function emailEnabled(): boolean {
+  return Boolean(process.env.POSTAL_URL && process.env.POSTAL_API_KEY);
+}
+
 export async function send(to: string, subject: string, html: string) {
   const baseUrl = process.env.POSTAL_URL;
   const apiKey = process.env.POSTAL_API_KEY;
   if (!baseUrl || !apiKey) {
     if (process.env.NODE_ENV !== "production") {
+      // Dev: surface the email body so flows are testable without a mail server.
       console.log(`[dev email] to=${to} subject="${subject}"\n${html}`);
-    } else {
-      console.error("[email] POSTAL_URL or POSTAL_API_KEY missing — email not sent");
+    } else if (Boolean(baseUrl) !== Boolean(apiKey)) {
+      // Exactly one var set — almost certainly a misconfiguration, not an opt-out.
+      console.warn(
+        `[email] ${baseUrl ? "POSTAL_API_KEY" : "POSTAL_URL"} is missing — email is disabled. Set both, or leave both blank to disable email intentionally.`
+      );
     }
+    // Both blank → email intentionally disabled → stay silent.
     return;
   }
   try {
