@@ -1,5 +1,9 @@
 # Postal email setup — get POSTAL_URL and POSTAL_API_KEY
 
+> **Email is optional.** Skip this entire guide to run the site without email
+> (password reset is hidden; notification emails are skipped). Follow it only if
+> you want transactional email.
+
 Goal: a working self-hosted Postal at **https://mail.shifalabsops.com** that sends
 mail from **shifalabsops.com**, giving you the two values the app needs:
 

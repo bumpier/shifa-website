@@ -4,7 +4,7 @@ A self-contained e-commerce site for physical products with a built-in admin
 panel, an invite-only affiliate programme, and crypto payments via Heleket
 (Bitcoin, Ethereum, USDT, Monero).
 
-Stack: Next.js 15 (App Router) · SQLite via Prisma · Tailwind CSS · Jose + bcrypt · Postal (self-hosted email).
+Stack: Next.js 15 (App Router) · SQLite via Prisma · Tailwind CSS · Jose + bcrypt · optional Postal email (self-hosted).
 
 ## Quick start
 
@@ -78,6 +78,8 @@ Schedule the daily job on the server:
 ## Email setup (Postal, self-hosted)
 
 Transactional emails (verification, password reset, order confirmation, shipped/delivered, nudges) go through a self-hosted [Postal](https://postalserver.io) server via its HTTP API.
+
+**Email is optional.** Leave `POSTAL_URL` and `POSTAL_API_KEY` blank and the app runs normally — password reset is simply hidden, and order/affiliate notification emails are skipped. The steps below are only needed if you want email.
 
 1. In the Postal web UI, create a mail server for the site and add your sending domain (set up the SPF/DKIM/return-path DNS records it shows you)
 2. Create an **API** credential for that mail server (Mail Server → Credentials → API)
