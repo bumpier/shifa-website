@@ -23,6 +23,7 @@ interface CartApi {
   items: CartItem[];
   count: number;
   add: (item: Omit<CartItem, "qty">, qty?: number) => void;
+  buyNow: (item: Omit<CartItem, "qty">, qty?: number) => void;
   setQty: (productId: string, qty: number, variantLabel?: string) => void;
   remove: (productId: string, variantLabel?: string) => void;
   clear: () => void;
@@ -33,6 +34,7 @@ const CartContext = createContext<CartApi>({
   items: [],
   count: 0,
   add: () => {},
+  buyNow: () => {},
   setQty: () => {},
   remove: () => {},
   clear: () => {},
@@ -80,6 +82,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
         return [...prev, { ...item, qty: Math.min(50, qty) }];
       });
+    },
+    // Direct purchase: replace cart contents with a single product, then the
+    // caller navigates to /checkout. The store has no cart UI — this is just a
+    // transient buffer for the crypto checkout flow.
+    buyNow(item, qty = 1) {
+      setItems([{ ...item, qty: Math.min(50, Math.max(1, qty)) }]);
     },
     setQty(productId, qty, variantLabel) {
       const key = itemKey(productId, variantLabel);

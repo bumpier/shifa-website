@@ -4,9 +4,9 @@ import ReactMarkdown from "react-markdown";
 import { prisma } from "@/lib/db";
 import { brand } from "@/config/brand";
 import { canonicalOrigin } from "@/lib/site-url";
-import { parseImages, priceMap, parseVariants } from "@/lib/catalog";
+import { parseImages, priceMap } from "@/lib/catalog";
 import { CERTIFICATIONS } from "@/config/certifications";
-import { AddToCart } from "@/components/AddToCart";
+import { ProductBuy } from "@/components/ProductBuy";
 import { ProductImage } from "@/components/ProductImage";
 import { ClientPrice } from "@/components/ClientPrice";
 
@@ -54,7 +54,6 @@ export default async function ProductPage({
 
   const images = parseImages(product);
   const prices = priceMap(product);
-  const variants = parseVariants(product);
   const certs = CERTIFICATIONS[product.slug] ?? [];
 
   const faqSchema = {
@@ -138,32 +137,20 @@ export default async function ProductPage({
           <h1 className="mt-2 font-display text-3xl font-medium leading-snug tracking-tight text-brand-deep sm:text-4xl">
             {product.name}
           </h1>
-          {variants.length === 0 && (
-            <p className="mt-4 text-2xl font-semibold text-brand">
-              <ClientPrice prices={prices} />
-            </p>
-          )}
+          <p className="mt-4 text-2xl font-semibold text-brand">
+            <ClientPrice prices={prices} />
+          </p>
 
           <div className="mt-8">
-            <AddToCart
+            <ProductBuy
               productId={product.id}
               slug={product.slug}
               name={product.name}
               image={images[0] ?? null}
               prices={prices}
               inStock={product.stock > 0}
-              variants={variants}
+              freshaUrl={product.freshaUrl}
             />
-            {product.freshaUrl && (
-              <a
-                href={product.freshaUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary mt-3 w-full sm:w-auto"
-              >
-                Pay with Fresha
-              </a>
-            )}
           </div>
 
           <ul className="mt-8 space-y-2 border-t border-line pt-6 text-sm text-ink-soft">

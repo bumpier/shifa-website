@@ -6,10 +6,15 @@ export interface Cert {
   url: string;
 }
 
+const RETATRUTIDE_CERTS: Cert[] = [
+  { compound: "Retatrutide", batch: "NC-20015", url: `${BASE}/NovaCert_COA_Retatrutide_NC-20015.pdf` },
+];
+
 export const CERTIFICATIONS: Record<string, Cert[]> = {
-  "retatrutide-pen": [
-    { compound: "Retatrutide", batch: "NC-20015", url: `${BASE}/NovaCert_COA_Retatrutide_NC-20015.pdf` },
-  ],
+  // Same Retatrutide COA applies to every dose product.
+  "retatrutide-10mg": RETATRUTIDE_CERTS,
+  "retatrutide-20mg": RETATRUTIDE_CERTS,
+  "retatrutide-30mg": RETATRUTIDE_CERTS,
   "cutpr-prime-cut-protocol": [
     { compound: "Tesamorelin", batch: "NC-20013", url: `${BASE}/NovaCert_COA_Tesamorelin_NC-20013.pdf` },
   ],

@@ -47,7 +47,7 @@ export const brand = {
   } as Record<string, number>,
   // Slugs that get a "Best Seller" badge on product cards
   bestSellers: [
-    "retatrutide-pen",
+    "retatrutide-20mg",
     "bptb-repair-pen",
     "nd1000-nad-cellular-energy-pen",
   ],

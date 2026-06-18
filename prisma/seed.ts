@@ -1,14 +1,9 @@
 import { PrismaClient } from "@prisma/client";
-import { brand } from "../config/brand";
 
 const prisma = new PrismaClient();
 
-const products = [
-  // ── Weight Loss Protocols ────────────────────────────────────────────
-  {
-    slug: "retatrutide-pen",
-    name: "Retatrutide Pen",
-    description: `Triple-receptor agonist targeting GLP-1, GIP, and glucagon pathways simultaneously. Available in 10mg, 20mg, and 30mg doses to support a structured dose-escalation programme.
+// Shared across the three Retatrutide dose products (10/20/30mg).
+const RETATRUTIDE_DESCRIPTION = `Triple-receptor agonist targeting GLP-1, GIP, and glucagon pathways simultaneously, supporting a structured dose-escalation programme across the 10mg, 20mg, and 30mg products.
 
 ## What it supports
 - Appetite regulation
@@ -31,16 +26,36 @@ const products = [
 **Week 6+:** Sustained wellness with expert-guided personalisation
 
 ## Storage
-Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected environment. ≥99.9% purity certified, batch certificate of analysis included.`,
+Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected environment. ≥99.9% purity certified, batch certificate of analysis included.`;
+
+const products = [
+  // ── Weight Loss Protocols ────────────────────────────────────────────
+  {
+    slug: "retatrutide-10mg",
+    name: "Retatrutide 10mg",
+    description: RETATRUTIDE_DESCRIPTION,
     priceGbp: 100, priceEur: 119, priceUsd: 127, priceAed: 470, pricePkr: 35000,
-    stock: 150, weightGrams: 50,
+    stock: 50, weightGrams: 50,
+    images: JSON.stringify(["/products/rt10.png"]),
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/rt10-v101xa1m",
+  },
+  {
+    slug: "retatrutide-20mg",
+    name: "Retatrutide 20mg",
+    description: RETATRUTIDE_DESCRIPTION,
+    priceGbp: 120, priceEur: 142, priceUsd: 152, priceAed: 565, pricePkr: 42000,
+    stock: 50, weightGrams: 50,
     images: JSON.stringify(["/products/rt10.png"]),
     freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/rt20-te8vglqe",
-    variants: JSON.stringify([
-      { label: "10mg", priceGbp: 100, priceEur: 119, priceUsd: 127, priceAed: 470, pricePkr: 35000 },
-      { label: "20mg", priceGbp: 120, priceEur: 142, priceUsd: 152, priceAed: 565, pricePkr: 42000 },
-      { label: "30mg", priceGbp: 160, priceEur: 189, priceUsd: 203, priceAed: 752, pricePkr: 56000 },
-    ]),
+  },
+  {
+    slug: "retatrutide-30mg",
+    name: "Retatrutide 30mg",
+    description: RETATRUTIDE_DESCRIPTION,
+    priceGbp: 160, priceEur: 189, priceUsd: 203, priceAed: 752, pricePkr: 56000,
+    stock: 50, weightGrams: 50,
+    images: JSON.stringify(["/products/rt10.png"]),
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/rt30-rlcf9grv",
   },
   {
     slug: "cutpr-prime-cut-protocol",
@@ -93,7 +108,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 140, priceEur: 165, priceUsd: 178, priceAed: 658, pricePkr: 49000,
     stock: 50, weightGrams: 50,
     images: JSON.stringify(["/products/bptb.png"]),
-    freshaUrl: brand.fresha.storeUrl,
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/bptb-w9p82fcr",
   },
   {
     slug: "wol10-wolverine-protocol",
@@ -119,7 +134,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 170, priceEur: 201, priceUsd: 216, priceAed: 799, pricePkr: 59500,
     stock: 30, weightGrams: 150,
     images: JSON.stringify(["/products/wol10.jpg"]),
-    freshaUrl: "https://www.fresha.com/en-GB/store/shifa-store-q6pyv9ro/product/wol10-odlw2f6i?pId=2874001",
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/wol10-odlw2f6i",
   },
   // ── Skin, Hair & Nails ───────────────────────────────────────────────
   {
@@ -147,7 +162,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 100, priceEur: 119, priceUsd: 127, priceAed: 470, pricePkr: 35000,
     stock: 50, weightGrams: 50,
     images: JSON.stringify(["/products/gku50.png"]),
-    freshaUrl: brand.fresha.storeUrl,
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/gku50-t83nnerv",
   },
   {
     slug: "glow10-glow-protocol",
@@ -202,7 +217,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 140, priceEur: 165, priceUsd: 178, priceAed: 658, pricePkr: 49000,
     stock: 50, weightGrams: 50,
     images: JSON.stringify(["/products/cjip10.png"]),
-    freshaUrl: brand.fresha.storeUrl,
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/cjip10-l6uwk38r",
   },
   // ── Cellular Energy ──────────────────────────────────────────────────
   {
@@ -230,7 +245,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 150, priceEur: 177, priceUsd: 190, priceAed: 705, pricePkr: 52500,
     stock: 50, weightGrams: 50,
     images: JSON.stringify(["/products/nd1000.png"]),
-    freshaUrl: brand.fresha.storeUrl,
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/nd1000-ggto4eet",
   },
   {
     slug: "regen-regenesis-protocol",
@@ -285,7 +300,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 150, priceEur: 177, priceUsd: 190, priceAed: 705, pricePkr: 52500,
     stock: 50, weightGrams: 50,
     images: JSON.stringify(["/products/mt40.png"]),
-    freshaUrl: brand.fresha.storeUrl,
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/mt40-ejbt9inh",
   },
   // ── Other Protocols ──────────────────────────────────────────────────
   {
