@@ -6,6 +6,8 @@ import { CheckoutSchema, verifyOrigin } from "@/lib/validation";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { originFromHeaders } from "@/lib/site-url";
 import { createCryptoPayment, type CryptoPaymentMethod } from "@/lib/heleket";
+import { createStripeCheckout } from "@/lib/payments/stripe";
+import { getPaymentConfig, providerForMethod } from "@/lib/payments/config";
 import { priceFor, priceForVariant } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +29,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid order details" }, { status: 400 });
     }
     const input = parsed.data;
+
+    const provider = providerForMethod(input.paymentMethod);
+    if (!getPaymentConfig().methods.includes(input.paymentMethod)) {
+      return NextResponse.json(
+        { error: "That payment method is not available." },
+        { status: 400 }
+      );
+    }
 
     // Server-side pricing — never trust client amounts
     const ids = input.items.map((i) => i.productId);
@@ -95,9 +105,29 @@ export async function POST(req: Request) {
         totalAmount: total,
         subtotalUsd,
         paymentMethod: input.paymentMethod,
+        paymentProvider: provider,
         refCode: refCode && /^[a-z0-9]{4,16}$/.test(refCode) ? refCode : null,
       },
     });
+
+    const origin = originFromHeaders(req.headers);
+
+    if (provider === "stripe") {
+      const checkout = await createStripeCheckout(
+        {
+          id: order.id,
+          currency: order.currency,
+          items: order.items,
+          customerEmail: order.customerEmail,
+        },
+        origin
+      );
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { paymentRef: checkout.paymentRef, notes: "Card payment (Stripe)" },
+      });
+      return NextResponse.json({ paymentUrl: checkout.paymentUrl, orderId: order.id });
+    }
 
     const cryptoPayment = await createCryptoPayment({
       orderId: order.id,
@@ -105,7 +135,7 @@ export async function POST(req: Request) {
       method: input.paymentMethod as CryptoPaymentMethod,
       customerName: input.name,
       customerEmail: input.email,
-      origin: originFromHeaders(req.headers),
+      origin,
     });
 
     await prisma.order.update({
