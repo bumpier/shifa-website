@@ -104,7 +104,8 @@ async function main() {
   assert(refs.length === 1 && refs[0]!.kind === "direct", "commission created");
 
   // 4) Retry is a no-op (idempotent)
-  await stripeWebhook(signedRequest(order.id, "pi_smoke_1"));
+  const res2 = await stripeWebhook(signedRequest(order.id, "pi_smoke_1"));
+  assert(res2.status === 200, "retry returns 200 (no error on replay)");
   const refs2 = await prisma.affiliateReferral.findMany({ where: { orderId: order.id } });
   assert(refs2.length === 1, "retry does not duplicate commission");
 
