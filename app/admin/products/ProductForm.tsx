@@ -21,6 +21,7 @@ export interface ProductFormValues {
   weightGrams: number;
   supplyDays: number;
   active: boolean;
+  freshaUrl: string;
   currentImage: string | null;
 }
 
@@ -116,6 +117,22 @@ export function ProductForm({ values }: { values: ProductFormValues }) {
             Visible in store
           </label>
         </div>
+      </div>
+
+      <div>
+        <label className="label" htmlFor="freshaUrl">Fresha URL (optional)</label>
+        <input
+          id="freshaUrl"
+          name="freshaUrl"
+          type="url"
+          maxLength={500}
+          defaultValue={values.freshaUrl}
+          className="field"
+          placeholder="https://www.fresha.com/store/shifa-store-q6pyv9ro/product/..."
+        />
+        <p className="mt-1.5 text-xs text-ink-soft/70">
+          Shows a “Pay with Fresha” button on the product page. Leave blank to hide it. Must be a www.fresha.com link.
+        </p>
       </div>
 
       <div>

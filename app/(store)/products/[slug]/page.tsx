@@ -154,6 +154,16 @@ export default async function ProductPage({
               inStock={product.stock > 0}
               variants={variants}
             />
+            {product.freshaUrl && (
+              <a
+                href={product.freshaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary mt-3 w-full sm:w-auto"
+              >
+                Pay with Fresha
+              </a>
+            )}
           </div>
 
           <ul className="mt-8 space-y-2 border-t border-line pt-6 text-sm text-ink-soft">

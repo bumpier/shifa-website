@@ -20,6 +20,7 @@ model Product {
   priceEur    Decimal  @default(0) @map("price_eur")
   images      String   @default("[]") // JSON array of image paths
   variants    String   @default("[]") // JSON array of {label,priceAed,pricePkr,priceUsd,priceGbp,priceEur}
+  freshaUrl   String?  @map("fresha_url") // per-product "Pay with Fresha" link; null = no Fresha button
   stock       Int      @default(0)
   weightGrams Int      @default(0)
   supplyDays  Int      @default(0) @map("supply_days") // days one unit lasts; 0 = never nudge

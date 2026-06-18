@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { brand } from "../config/brand";
 
 const prisma = new PrismaClient();
 
@@ -34,6 +35,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 100, priceEur: 119, priceUsd: 127, priceAed: 470, pricePkr: 35000,
     stock: 150, weightGrams: 50,
     images: JSON.stringify(["/products/rt10.png"]),
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/rt20-te8vglqe",
     variants: JSON.stringify([
       { label: "10mg", priceGbp: 100, priceEur: 119, priceUsd: 127, priceAed: 470, pricePkr: 35000 },
       { label: "20mg", priceGbp: 120, priceEur: 142, priceUsd: 152, priceAed: 565, pricePkr: 42000 },
@@ -64,6 +66,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 300, priceEur: 354, priceUsd: 381, priceAed: 1410, pricePkr: 105000,
     stock: 30, weightGrams: 150,
     images: JSON.stringify(["/products/cutpr.png"]),
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/cutpr-g4he0b5c",
   },
   // ── Recovery & Repair ────────────────────────────────────────────────
   {
@@ -90,6 +93,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 140, priceEur: 165, priceUsd: 178, priceAed: 658, pricePkr: 49000,
     stock: 50, weightGrams: 50,
     images: JSON.stringify(["/products/bptb.png"]),
+    freshaUrl: brand.fresha.storeUrl,
   },
   {
     slug: "wol10-wolverine-protocol",
@@ -115,6 +119,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 170, priceEur: 201, priceUsd: 216, priceAed: 799, pricePkr: 59500,
     stock: 30, weightGrams: 150,
     images: JSON.stringify(["/products/wol10.jpg"]),
+    freshaUrl: "https://www.fresha.com/en-GB/store/shifa-store-q6pyv9ro/product/wol10-odlw2f6i?pId=2874001",
   },
   // ── Skin, Hair & Nails ───────────────────────────────────────────────
   {
@@ -142,6 +147,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 100, priceEur: 119, priceUsd: 127, priceAed: 470, pricePkr: 35000,
     stock: 50, weightGrams: 50,
     images: JSON.stringify(["/products/gku50.png"]),
+    freshaUrl: brand.fresha.storeUrl,
   },
   {
     slug: "glow10-glow-protocol",
@@ -168,6 +174,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 170, priceEur: 201, priceUsd: 216, priceAed: 799, pricePkr: 59500,
     stock: 30, weightGrams: 150,
     images: JSON.stringify(["/products/glow10.jpg"]),
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/glow10-g4odv29c",
   },
   // ── Growth Hormone ───────────────────────────────────────────────────
   {
@@ -195,6 +202,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 140, priceEur: 165, priceUsd: 178, priceAed: 658, pricePkr: 49000,
     stock: 50, weightGrams: 50,
     images: JSON.stringify(["/products/cjip10.png"]),
+    freshaUrl: brand.fresha.storeUrl,
   },
   // ── Cellular Energy ──────────────────────────────────────────────────
   {
@@ -222,6 +230,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 150, priceEur: 177, priceUsd: 190, priceAed: 705, pricePkr: 52500,
     stock: 50, weightGrams: 50,
     images: JSON.stringify(["/products/nd1000.png"]),
+    freshaUrl: brand.fresha.storeUrl,
   },
   {
     slug: "regen-regenesis-protocol",
@@ -248,6 +257,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 300, priceEur: 354, priceUsd: 381, priceAed: 1410, pricePkr: 105000,
     stock: 30, weightGrams: 150,
     images: JSON.stringify(["/products/regen.jpg"]),
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/regen-kt7h3cf7",
   },
   // ── Mitochondrial Support ────────────────────────────────────────────
   {
@@ -275,6 +285,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 150, priceEur: 177, priceUsd: 190, priceAed: 705, pricePkr: 52500,
     stock: 50, weightGrams: 50,
     images: JSON.stringify(["/products/mt40.png"]),
+    freshaUrl: brand.fresha.storeUrl,
   },
   // ── Other Protocols ──────────────────────────────────────────────────
   {
@@ -302,6 +313,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 160, priceEur: 189, priceUsd: 203, priceAed: 752, pricePkr: 56000,
     stock: 50, weightGrams: 50,
     images: JSON.stringify(["/products/deepsleep.jpg"]),
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/deepsleep-x6xhhpxl",
   },
   {
     slug: "libido-libido-protocol",
@@ -328,6 +340,7 @@ Refrigerate at 2–8°C once reconstituted. Keep in a cool, dry, light-protected
     priceGbp: 180, priceEur: 212, priceUsd: 229, priceAed: 846, pricePkr: 63000,
     stock: 50, weightGrams: 50,
     images: JSON.stringify(["/products/libido.jpg"]),
+    freshaUrl: "https://www.fresha.com/store/shifa-store-q6pyv9ro/product/libido-hi2esl3q",
   },
 ];
 

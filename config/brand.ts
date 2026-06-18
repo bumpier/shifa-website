@@ -30,6 +30,11 @@ export const brand = {
     qualityLine: "NovaCert Certificate of Analysis on every product, purity verified at ≥99.9%.",
     secureLine: "Crypto payments processed securely via Heleket.",
   },
+  // Fresha booking storefront. Products without a specific Fresha product
+  // page link here (the store landing). Per-product links live on Product.freshaUrl.
+  fresha: {
+    storeUrl: "https://www.fresha.com/en-GB/store/shifa-store-q6pyv9ro/category/none",
+  },
   // AED-to-X multipliers used to display affiliate balances in their chosen
   // payout currency. Update these whenever rates drift materially.
   // Actual payout conversion is handled by your bank at the time of transfer.

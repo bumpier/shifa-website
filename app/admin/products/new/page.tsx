@@ -27,6 +27,7 @@ export default async function NewProductPage() {
             weightGrams: 0,
             supplyDays: 0,
             active: true,
+            freshaUrl: "",
             currentImage: null,
           }}
         />

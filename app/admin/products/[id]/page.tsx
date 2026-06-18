@@ -51,6 +51,7 @@ export default async function EditProductPage({
             weightGrams: product.weightGrams,
             supplyDays: product.supplyDays,
             active: product.active,
+            freshaUrl: product.freshaUrl ?? "",
             currentImage: image,
           }}
         />

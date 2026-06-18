@@ -77,6 +77,15 @@ export const WalletSchema = z
 
 const priceField = z.coerce.number().min(0).max(1_000_000);
 
+/** A "Pay with Fresha" link must point at the Fresha domain. */
+function isFreshaUrl(value: string): boolean {
+  try {
+    return new URL(value).host === "www.fresha.com";
+  } catch {
+    return false;
+  }
+}
+
 export const ProductSchema = z
   .object({
     name: z.string().min(2).max(150).trim(),
@@ -95,6 +104,12 @@ export const ProductSchema = z
     weightGrams: z.coerce.number().int().min(0).max(1_000_000),
     supplyDays: z.coerce.number().int().min(0).max(3650),
     active: z.coerce.boolean(),
+    // Optional per-product Fresha link; blank clears it.
+    freshaUrl: z
+      .string()
+      .trim()
+      .max(500)
+      .refine((u) => u === "" || isFreshaUrl(u), "Enter a valid Fresha link (www.fresha.com)"),
   })
   .strict();
 

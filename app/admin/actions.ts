@@ -155,6 +155,7 @@ export async function saveProductAction(
     weightGrams: formData.get("weightGrams"),
     supplyDays: formData.get("supplyDays"),
     active: formData.get("active") === "on",
+    freshaUrl: formData.get("freshaUrl") ?? "",
   });
   if (!parsed.success) {
     return { error: parsed.error.errors[0]?.message ?? "Invalid product details" };
@@ -185,6 +186,7 @@ export async function saveProductAction(
     weightGrams: d.weightGrams,
     supplyDays: d.supplyDays,
     active: d.active,
+    freshaUrl: d.freshaUrl ? d.freshaUrl : null,
   };
 
   try {
