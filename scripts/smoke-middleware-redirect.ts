@@ -2,8 +2,13 @@
 //   npx tsx scripts/smoke-middleware-redirect.ts
 //
 // Guards the fix for the /admin → localhost:3000 redirect leak: the middleware
-// must emit a RELATIVE Location so the browser stays on whatever public domain
-// it's already on, regardless of the (internal) host the app actually sees.
+// must build its (absolute, as Next requires) redirect from X-Forwarded-Host —
+// the public domain nginx forwards — never from the internal upstream host.
+//
+// NOTE: this calls middleware() directly, so it verifies WHICH host ends up in
+// the Location header. It does NOT exercise Next's middleware runtime (which
+// rejects relative Locations). The dev-server probe in the PR is what guards
+// against the 500 itself.
 import { NextRequest } from "next/server";
 import { SignJWT } from "jose";
 import { middleware } from "../middleware";
@@ -16,10 +21,14 @@ function assert(cond: boolean, msg: string) {
 process.env.JWT_SECRET = "smoke-secret";
 const secret = new TextEncoder().encode(process.env.JWT_SECRET);
 
-// Build a request whose host is the INTERNAL upstream — the exact value that
-// used to leak into the redirect. A correct relative Location must not contain it.
+// Simulate a request as nginx forwards it: the raw Host is the internal upstream
+// (the value that used to leak), while X-Forwarded-Host carries the public domain.
 function req(path: string, cookie?: string): NextRequest {
-  const headers = new Headers();
+  const headers = new Headers({
+    host: "127.0.0.1:3000",
+    "x-forwarded-host": "shifalabsasia.com",
+    "x-forwarded-proto": "https",
+  });
   if (cookie) headers.set("cookie", cookie);
   return new NextRequest(new URL(`http://127.0.0.1:3000${path}`), { headers });
 }
@@ -33,34 +42,34 @@ async function packerToken(): Promise<string> {
 }
 
 async function run() {
-  // 1. Unauthenticated /admin → relative /admin/login
+  // 1. Unauthenticated /admin → login on the PUBLIC host
   {
     const res = await middleware(req("/admin"));
     assert(res.status === 307, "unauth /admin returns 307");
     assert(
-      res.headers.get("location") === "/admin/login",
-      "unauth /admin → relative /admin/login (no host leak)"
+      res.headers.get("location") === "https://shifalabsasia.com/admin/login",
+      "unauth /admin → https://shifalabsasia.com/admin/login (forwarded host)"
     );
   }
 
-  // 2. Packer hitting a non-orders admin page → relative /admin/orders
+  // 2. Packer hitting a non-orders admin page → orders on the public host
   {
     const token = await packerToken();
     const res = await middleware(req("/admin", `admin_session=${token}`));
     assert(res.status === 307, "packer /admin returns 307");
     assert(
-      res.headers.get("location") === "/admin/orders",
-      "packer /admin → relative /admin/orders"
+      res.headers.get("location") === "https://shifalabsasia.com/admin/orders",
+      "packer /admin → https://shifalabsasia.com/admin/orders"
     );
   }
 
-  // 3. Unauthenticated /dashboard → relative /auth/login
+  // 3. Unauthenticated /dashboard → auth login on the public host
   {
     const res = await middleware(req("/dashboard"));
     assert(res.status === 307, "unauth /dashboard returns 307");
     assert(
-      res.headers.get("location") === "/auth/login",
-      "unauth /dashboard → relative /auth/login"
+      res.headers.get("location") === "https://shifalabsasia.com/auth/login",
+      "unauth /dashboard → https://shifalabsasia.com/auth/login"
     );
   }
 
@@ -68,7 +77,7 @@ async function run() {
   for (const path of ["/admin", "/dashboard"]) {
     const loc = (await middleware(req(path))).headers.get("location") ?? "";
     assert(
-      !loc.includes("127.0.0.1") && !loc.includes("localhost"),
+      !loc.includes("127.0.0.1") && !loc.includes("localhost:3000"),
       `${path} redirect Location carries no internal host`
     );
   }

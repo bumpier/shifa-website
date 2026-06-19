@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SignJWT, jwtVerify } from "jose";
+import { originFromHeaders } from "@/lib/site-url";
 
 // Server-side gatekeeper for /admin/* and /dashboard, plus affiliate
 // referral capture (?ref=CODE → 30-day cookie, last-click wins) and
@@ -15,13 +16,13 @@ function secret(): Uint8Array {
   return new TextEncoder().encode(process.env.JWT_SECRET ?? "");
 }
 
-// Redirect to a path on the SAME origin the browser is already using.
-// A relative Location header is resolved by the browser against the address-bar
-// URL, so it stays on the public domain. Building an absolute URL from
-// req.nextUrl instead would leak the internal upstream host (localhost:3000)
-// whenever the proxy doesn't forward the public Host header.
-function redirectTo(path: string): NextResponse {
-  return new NextResponse(null, { status: 307, headers: { Location: path } });
+// Redirect within the same public origin the visitor is actually on.
+// Next's middleware runtime requires an ABSOLUTE redirect URL, so we build one
+// from originFromHeaders() — which prefers X-Forwarded-Host (forwarded by nginx)
+// over the raw Host. Using req.nextUrl instead would leak the internal upstream
+// host (localhost:3000) into the Location header.
+function redirectTo(req: NextRequest, path: string): NextResponse {
+  return NextResponse.redirect(new URL(path, originFromHeaders(req.headers)));
 }
 
 async function getAdminTokenRole(
@@ -56,12 +57,12 @@ export async function middleware(req: NextRequest) {
     const role = await getAdminTokenRole(token);
 
     if (!role) {
-      return redirectTo("/admin/login");
+      return redirectTo(req, "/admin/login");
     }
 
     // Packers are restricted to /admin/orders and /admin/orders/*
     if (role === "PACKER" && !pathname.startsWith("/admin/orders")) {
-      return redirectTo("/admin/orders");
+      return redirectTo(req, "/admin/orders");
     }
 
     // Sliding expiry: re-issue token preserving role
@@ -87,7 +88,7 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/dashboard")) {
     const token = req.cookies.get("session")?.value;
     if (!(await validUserToken(token))) {
-      return redirectTo("/auth/login");
+      return redirectTo(req, "/auth/login");
     }
   }
 
