@@ -73,8 +73,8 @@ printf 'DATABASE_URL="file:../data/shifa.db"\n' > .env
 cat > .env.local <<'EOF'
 DATABASE_URL="file:../data/shifa.db"
 NEXT_PUBLIC_SITE_URL=https://shifalabsasia.com
-HELEKET_MERCHANT_ID=04cfc4f1-a74a-4a07-b368-7a2f00f1ed66
-HELEKET_PAYMENT_API_KEY=
+CRYPTO_GATEWAY_URL=https://pay.shifalabsops.com
+CRYPTO_WEBHOOK_SECRET=PASTE_GATEWAY_WEBHOOK_SECRET
 JWT_SECRET=PASTE_SECRET_1
 ADMIN_PASSWORD=PICK_A_STRONG_PASSWORD
 AFFILIATE_DEFAULT_COMMISSION=10
@@ -98,8 +98,8 @@ openssl rand -hex 32   # -> CRON_SECRET    (PASTE_SECRET_3)
 ⏸ BY HAND: `nano .env.local` and fill in:
 - the three `PASTE_SECRET_*` with the values you just generated,
 - `ADMIN_PASSWORD` — your admin login password,
-- `HELEKET_PAYMENT_API_KEY` — the Payment API key from your Heleket dashboard
-  (the merchant ID is already filled in).
+- `CRYPTO_WEBHOOK_SECRET` — set it to the crypto gateway's `WEBHOOK_SECRET`
+  (it must match exactly, or payment webhooks are rejected with 401).
 - (`POSTAL_URL` / `POSTAL_API_KEY` stay empty until Part B.)
 
 ## 4. Set up the database, then build
@@ -284,8 +284,8 @@ bash /srv/shifa/deploy/scripts/deploy.sh
 | Value | Where it comes from |
 |---|---|
 | `NEXT_PUBLIC_SITE_URL` | `https://shifalabsasia.com` |
-| `HELEKET_MERCHANT_ID` | already filled in (`04cfc4f1-…`) |
-| `HELEKET_PAYMENT_API_KEY` | Heleket dashboard → API |
+| `CRYPTO_GATEWAY_URL` | crypto gateway base URL (`https://pay.shifalabsops.com`) |
+| `CRYPTO_WEBHOOK_SECRET` | the crypto gateway's `WEBHOOK_SECRET` (must match exactly) |
 | `POSTAL_URL` | `https://mail.shifalabsops.com` (after Part B) |
 | `POSTAL_API_KEY` | Postal web UI → Mail Server → Credentials → API (step 12) |
 | `JWT_SECRET` / `ENCRYPTION_KEY` / `CRON_SECRET` | `openssl rand -hex 32` (step 3) |

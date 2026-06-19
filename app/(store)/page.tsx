@@ -33,7 +33,7 @@ const homepageFaqSchema = {
       name: "What payment methods does Shifa Asia accept?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Shifa Asia accepts cryptocurrency payments — Bitcoin, Ethereum, USDT, and Monero — processed securely through Heleket.",
+        text: "Shifa Asia accepts cryptocurrency payments — Bitcoin, Ethereum, USDT, and Monero — processed securely.",
       },
     },
     {

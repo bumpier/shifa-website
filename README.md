@@ -1,8 +1,8 @@
 # Shifa — white-label e-commerce storefront
 
 A self-contained e-commerce site for physical products with a built-in admin
-panel, an invite-only affiliate programme, and crypto payments via Heleket
-(Bitcoin, Ethereum, USDT, Monero).
+panel, an invite-only affiliate programme, and crypto payments
+(Bitcoin, Ethereum, USDT, Monero) via a self-hosted gateway.
 
 Stack: Next.js 15 (App Router) · SQLite via Prisma · Tailwind CSS · Jose + bcrypt · optional Postal email (self-hosted).
 
@@ -40,25 +40,41 @@ palette (tints, shades, ink, paper) is derived automatically from
 Fonts are the one exception (`next/font` needs literal names): swap the two
 imports in `app/fonts.ts`.
 
-## Payments (Heleket — crypto only)
+## Payments (crypto only)
 
-Payment is crypto-only: Bitcoin, Ethereum, USDT and Monero. `lib/heleket.ts`
-is the single integration point —
-it creates a hosted payment and the customer is redirected to Heleket to
-pay. Set `HELEKET_MERCHANT_ID` and `HELEKET_PAYMENT_API_KEY` in `.env.local`.
+Payment is crypto-only: Bitcoin, Ethereum, USDT and Monero, handled by a
+self-hosted gateway (`CRYPTO_GATEWAY_URL`, default `https://pay.shifalabsops.com`).
+`lib/crypto-gateway.ts` + `lib/crypto-rates.ts` are the integration points.
 
-Payments are confirmed by a signed webhook at `/api/webhooks/heleket`.
-Heleket embeds the signature as `sign = md5(base64(json-body) + payment-key)`
-directly in the webhook body (not a header); the handler removes `sign`,
-re-serialises, and recomputes to verify. On success the order is marked paid,
-stock decremented, and the affiliate commission created — never client-side.
+**Checkout → payment.** `createCryptoPayment` converts the order's USD subtotal
+to the chosen coin (USDT 1:1; BTC/ETH/XMR via a live CoinGecko rate, cached 60s —
+the gateway charges the *exact* crypto amount and does no fiat conversion itself),
+then `POST {CRYPTO_GATEWAY_URL}/create-payment` with `{ amount, orderId, currency }`.
+The gateway returns a deposit `wallet`, exact `amount`, a `qr` and `expiresAt` (no
+hosted page), which we stash on the order and render on our own pay screen
+`/checkout/pay/[id]` — address + QR + countdown. That page polls
+`/api/order-status/[id]` and auto-advances to the confirmation page once the
+webhook marks the order paid.
 
-**Dev simulator:** with no `HELEKET_MERCHANT_ID`, checkout redirects to
-`/dev/heleket`, a local stand-in for the hosted payment page that fires
-correctly signed webhooks at the real endpoint, so the whole flow
-(checkout → webhook → paid order → commission) works locally. Because the
-simulator signs those webhooks, set `HELEKET_PAYMENT_API_KEY` to any non-empty
-value in dev as well. It returns 404 whenever a merchant ID is configured.
+**Confirmation.** Confirmations arrive as a signed server-to-server webhook at
+`/api/crypto-webhook`. The gateway signs the **raw request body** and sends
+`X-Webhook-Signature: sha256=HMAC-SHA256(CRYPTO_WEBHOOK_SECRET, rawBody)`; the
+handler verifies that over the raw bytes (constant-time) **before** parsing —
+missing/invalid signature → 401, unset secret → 500. Then, only for a
+`payment.confirmed` event whose `payment.status` is `"confirmed"`, it marks the
+order paid, decrements stock, records the paymentId / txHash / currency / amount
+on the order (JSON in `notes`), and creates the affiliate commission — never
+client-side. It is idempotent (retries and already-paid orders are no-ops) and
+acknowledges test pings (`test: true`) and unknown orders with `200` without
+fulfilling. Set `CRYPTO_WEBHOOK_SECRET` (it MUST equal the gateway's
+`WEBHOOK_SECRET`) in `.env.local`.
+
+Smoke tests (webhook verifier + idempotency; USD→crypto conversion + notes):
+
+```bash
+DATABASE_URL=file:$(pwd)/data/shifa.db npx tsx scripts/smoke-crypto-webhook.ts
+DATABASE_URL=file:$(pwd)/data/shifa.db npx tsx scripts/smoke-crypto-pay.ts
+```
 
 ## Repurchase nudge emails
 
@@ -105,7 +121,7 @@ Transactional emails (verification, password reset, order confirmation, shipped/
 |---|---|
 | `config/brand.ts` | All branding (white-label) |
 | `prisma/schema.prisma` | Database schema |
-| `lib/heleket.ts` | Crypto payment gateway integration |
+| `lib/crypto-gateway.ts` | Crypto gateway: webhook verify + (stub) invoice create |
 | `lib/affiliate.ts` | Commission lifecycle |
 | `app/admin/*` | Admin panel |
 | `data/shifa.db` | SQLite database (never web-accessible) |

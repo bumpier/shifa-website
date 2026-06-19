@@ -85,8 +85,8 @@ printf 'DATABASE_URL="file:../data/shifa.db"\n' > .env
 cat > .env.local <<'EOF'
 DATABASE_URL="file:../data/shifa.db"
 NEXT_PUBLIC_SITE_URL=https://PRIMARY_DOMAIN
-HELEKET_MERCHANT_ID=
-HELEKET_PAYMENT_API_KEY=
+CRYPTO_GATEWAY_URL=https://pay.shifalabsops.com
+CRYPTO_WEBHOOK_SECRET=PASTE_GATEWAY_WEBHOOK_SECRET
 JWT_SECRET=REPLACE_WITH_openssl_rand_hex_32
 ADMIN_PASSWORD=REPLACE_WITH_A_STRONG_PASSWORD
 AFFILIATE_DEFAULT_COMMISSION=10
@@ -106,7 +106,8 @@ openssl rand -hex 32   # JWT_SECRET
 openssl rand -hex 32   # ENCRYPTION_KEY
 openssl rand -hex 32   # CRON_SECRET
 # Also set ADMIN_PASSWORD, NEXT_PUBLIC_SITE_URL, SENDING_DOMAIN.
-# Leave HELEKET_* / POSTAL_* until their sections.
+# Set CRYPTO_WEBHOOK_SECRET to the crypto gateway's WEBHOOK_SECRET (must match exactly).
+# Leave POSTAL_* until their section.
 
 npm ci
 npm run build

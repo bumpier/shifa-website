@@ -84,7 +84,7 @@ export default async function ProductPage({
         name: `What payment methods can I use to buy ${product.name}?`,
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Shifa Asia accepts cryptocurrency payments — Bitcoin, Ethereum, USDT, and Monero — processed securely through Heleket.",
+          text: "Shifa Asia accepts cryptocurrency payments — Bitcoin, Ethereum, USDT, and Monero — processed securely.",
         },
       },
     ],

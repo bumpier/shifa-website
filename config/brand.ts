@@ -28,7 +28,7 @@ export const brand = {
   trust: {
     shippingLine: "Every order packed and shipped by us, worldwide.",
     qualityLine: "NovaCert Certificate of Analysis on every product, purity verified at ≥99.9%.",
-    secureLine: "Crypto payments processed securely via Heleket.",
+    secureLine: "Crypto payments processed securely.",
   },
   // Fresha booking storefront. Products without a specific Fresha product
   // page link here (the store landing). Per-product links live on Product.freshaUrl.

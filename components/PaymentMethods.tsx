@@ -37,7 +37,7 @@ export function PaymentMethods() {
       </div>
 
       <p className="mt-3 text-[0.7rem] text-ink-soft/60">
-        🔒 All payments processed securely via Heleket.
+        🔒 All crypto payments are processed securely.
       </p>
     </div>
   );

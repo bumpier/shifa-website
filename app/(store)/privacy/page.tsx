@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           <h2 className="mb-2 font-semibold text-ink">Payment details</h2>
           <p>
             We never see or store your payment details. All payments are made in
-            cryptocurrency and processed by our payment provider (Heleket) on
+            cryptocurrency and processed by our crypto payment provider on
             their own infrastructure.
           </p>
         </section>

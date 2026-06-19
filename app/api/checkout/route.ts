@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { CheckoutSchema, verifyOrigin } from "@/lib/validation";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { originFromHeaders } from "@/lib/site-url";
-import { createCryptoPayment, type CryptoPaymentMethod } from "@/lib/heleket";
+import { createCryptoPayment, buildPendingNote, type CryptoPaymentMethod } from "@/lib/crypto-gateway";
 import { priceFor, priceForVariant } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
@@ -112,7 +112,8 @@ export async function POST(req: Request) {
       where: { id: order.id },
       data: {
         paymentRef: cryptoPayment.paymentRef,
-        notes: `Crypto payment (${input.paymentMethod.toUpperCase()})`,
+        // Deposit details for the pay page; overwritten by the audit note on confirm.
+        notes: buildPendingNote(cryptoPayment.payment),
       },
     });
 
