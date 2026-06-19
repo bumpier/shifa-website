@@ -15,6 +15,15 @@ function secret(): Uint8Array {
   return new TextEncoder().encode(process.env.JWT_SECRET ?? "");
 }
 
+// Redirect to a path on the SAME origin the browser is already using.
+// A relative Location header is resolved by the browser against the address-bar
+// URL, so it stays on the public domain. Building an absolute URL from
+// req.nextUrl instead would leak the internal upstream host (localhost:3000)
+// whenever the proxy doesn't forward the public Host header.
+function redirectTo(path: string): NextResponse {
+  return new NextResponse(null, { status: 307, headers: { Location: path } });
+}
+
 async function getAdminTokenRole(
   token: string | undefined
 ): Promise<"ADMIN" | "PACKER" | null> {
@@ -47,18 +56,12 @@ export async function middleware(req: NextRequest) {
     const role = await getAdminTokenRole(token);
 
     if (!role) {
-      const url = req.nextUrl.clone();
-      url.pathname = "/admin/login";
-      url.search = "";
-      return NextResponse.redirect(url);
+      return redirectTo("/admin/login");
     }
 
     // Packers are restricted to /admin/orders and /admin/orders/*
     if (role === "PACKER" && !pathname.startsWith("/admin/orders")) {
-      const url = req.nextUrl.clone();
-      url.pathname = "/admin/orders";
-      url.search = "";
-      return NextResponse.redirect(url);
+      return redirectTo("/admin/orders");
     }
 
     // Sliding expiry: re-issue token preserving role
@@ -84,10 +87,7 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/dashboard")) {
     const token = req.cookies.get("session")?.value;
     if (!(await validUserToken(token))) {
-      const url = req.nextUrl.clone();
-      url.pathname = "/auth/login";
-      url.search = "";
-      return NextResponse.redirect(url);
+      return redirectTo("/auth/login");
     }
   }
 
